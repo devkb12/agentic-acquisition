@@ -1,0 +1,454 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>TrueGrit Firm Pipeline</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600&display=swap">
+<style>
+/* Layout: case-file desk. Fixed left rail of views, working surface on the right, firm dossier slides over from the right edge. */
+:root{
+  --paper:#f4f5f2; --sheet:#ffffff; --ink:#18212b; --ink-2:#4a5664; --rule:#d9ddd6; --rule-2:#e8ebe5;
+  --binding:#6f2a32; --binding-soft:#f3e7e8; --rail:#1d2732; --rail-ink:#c9d1d9;
+  --ok:#2f6b4f; --ok-bg:#e3f0e8; --est:#8a5a12; --est-bg:#f8edd9; --miss:#5f6873; --miss-bg:#eceff1; --bad:#9b2c2c; --bad-bg:#f8e3e1; --info:#2c5282; --info-bg:#e2ebf6;
+  --f-display:"Source Serif 4", Georgia, "Times New Roman", serif;
+  --f-body:"IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-data:"IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --paper:#12171d; --sheet:#1a2129; --ink:#e6e9ec; --ink-2:#9aa6b2; --rule:#2c3640; --rule-2:#232c35;
+  --binding:#d48a93; --binding-soft:#3a2427; --rail:#0d1116; --rail-ink:#aeb8c2;
+  --ok:#7cc7a0; --ok-bg:#1d3329; --est:#e3b25f; --est-bg:#3a2e17; --miss:#a3adb7; --miss-bg:#262e36; --bad:#f09a92; --bad-bg:#3d2221; --info:#8fb6e6; --info-bg:#1e2c3d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --paper:#12171d; --sheet:#1a2129; --ink:#e6e9ec; --ink-2:#9aa6b2; --rule:#2c3640; --rule-2:#232c35;
+  --binding:#d48a93; --binding-soft:#3a2427; --rail:#0d1116; --rail-ink:#aeb8c2;
+  --ok:#7cc7a0; --ok-bg:#1d3329; --est:#e3b25f; --est-bg:#3a2e17; --miss:#a3adb7; --miss-bg:#262e36; --bad:#f09a92; --bad-bg:#3d2221; --info:#8fb6e6; --info-bg:#1e2c3d; color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font:14px/1.5 var(--f-body);-webkit-font-smoothing:antialiased}
+a{color:var(--info)}
+button,input,select,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--binding);outline-offset:2px}
+.app{display:grid;grid-template-columns:220px 1fr;min-height:100%}
+.rail{background:var(--rail);color:var(--rail-ink);padding:22px 0;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:22px}
+.brand{padding:0 20px}
+.brand b{display:block;font:600 19px/1.15 var(--f-display);color:#fff;letter-spacing:.01em}
+.brand span{font:500 10.5px/1.4 var(--f-data);letter-spacing:.14em;text-transform:uppercase;color:var(--rail-ink);opacity:.75}
+.nav{display:flex;flex-direction:column}
+.nav button{all:unset;cursor:pointer;padding:9px 20px;display:flex;justify-content:space-between;align-items:center;color:var(--rail-ink);border-left:3px solid transparent}
+.nav button:hover{background:rgba(255,255,255,.04)}
+.nav button[aria-current="true"]{color:#fff;border-left-color:#d48a93;background:rgba(255,255,255,.06)}
+.nav .ct{font:500 11px var(--f-data);opacity:.8}
+.rail .foot{margin-top:auto;padding:0 20px;font:11px/1.5 var(--f-data);opacity:.7}
+main{min-width:0;padding-block:26px 60px;padding-left:max(28px,env(safe-area-inset-left,0px));padding-right:max(28px,env(safe-area-inset-right,0px))}
+.head{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:flex-end;justify-content:space-between;margin-bottom:20px}
+h1{font:600 26px/1.15 var(--f-display);margin:0;text-wrap:balance}
+.sub{color:var(--ink-2);margin-top:4px;max-width:70ch}
+.banner{border:1px solid var(--rule);background:var(--sheet);border-left:3px solid var(--binding);padding:10px 14px;margin-bottom:18px;color:var(--ink-2);font-size:13px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:22px}
+.kpi{background:var(--sheet);border:1px solid var(--rule);padding:14px 16px}
+.kpi .l{font:500 10.5px var(--f-data);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.kpi .v{font:600 28px/1.1 var(--f-display);margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .n{font-size:12px;color:var(--ink-2);margin-top:2px}
+.grid2{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:18px}
+.panel{background:var(--sheet);border:1px solid var(--rule);padding:16px 18px;min-width:0}
+.panel h2{font:600 16px var(--f-display);margin:0 0 10px}
+.eyebrow{font:500 10.5px var(--f-data);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2)}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar{display:grid;grid-template-columns:150px 1fr 34px;gap:10px;align-items:center;font-size:13px}
+.bar .t{height:10px;background:var(--rule-2);position:relative}
+.bar .t i{position:absolute;inset:0 auto 0 0;background:var(--binding)}
+.bar .c{font:500 12px var(--f-data);text-align:right;font-variant-numeric:tabular-nums}
+.summary{white-space:pre-wrap;line-height:1.6;max-width:72ch}
+.filters{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center}
+.filters input,.filters select{background:var(--sheet);border:1px solid var(--rule);padding:7px 10px;min-width:0}
+.filters input{flex:1 1 220px}
+.filters label{display:flex;gap:6px;align-items:center;color:var(--ink-2);font-size:13px}
+.tablewrap{overflow-x:auto;background:var(--sheet);border:1px solid var(--rule)}
+table{border-collapse:collapse;width:100%;min-width:980px}
+th{font:500 10.5px var(--f-data);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-2);text-align:left;padding:10px 12px;border-bottom:1px solid var(--rule);white-space:nowrap;cursor:pointer;user-select:none}
+th[aria-sort="ascending"]::after{content:" \2191"}th[aria-sort="descending"]::after{content:" \2193"}
+td{padding:10px 12px;border-bottom:1px solid var(--rule-2);vertical-align:top}
+tbody tr{cursor:pointer}
+td:first-child,th:first-child{min-width:230px}
+.dossier .bar{grid-template-columns:200px 1fr 44px}
+tbody tr:hover td{background:var(--paper)}
+.num{font-family:var(--f-data);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fname{font:600 14.5px/1.3 var(--f-display)}
+.muted{color:var(--ink-2);font-size:12.5px}
+.pill{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;font:500 11.5px/1.5 var(--f-body);border-radius:2px;white-space:nowrap}
+.pill::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.p-high{background:var(--ok-bg);color:var(--ok)}.p-mod{background:var(--info-bg);color:var(--info)}.p-low{background:var(--miss-bg);color:var(--miss)}.p-ins{background:var(--est-bg);color:var(--est)}
+.tag{display:inline-block;font:500 10px/1.6 var(--f-data);letter-spacing:.06em;text-transform:uppercase;padding:0 5px;border:1px solid currentColor;border-radius:2px;margin-left:5px;vertical-align:1px}
+.s-verified{color:var(--ok)}.s-estimated{color:var(--est)}.s-missing,.s-unknown{color:var(--miss)}.s-conflicting{color:var(--bad)}.s-sample_demo{color:var(--info)}.s-review{color:var(--binding)}
+.empty{padding:40px 20px;text-align:center;color:var(--ink-2)}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.card{background:var(--sheet);border:1px solid var(--rule);padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
+.card dl{margin:0;display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:13px}
+.card dt{color:var(--ink-2)}.card dd{margin:0;min-width:0;overflow-wrap:anywhere}
+.btn{border:1px solid var(--rule);background:var(--sheet);padding:7px 12px;cursor:pointer}
+.btn:hover{border-color:var(--ink-2)}
+.btn.primary{background:var(--binding);border-color:var(--binding);color:var(--sheet)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* dossier drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,14,18,.35)}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(760px,100%);background:var(--paper);border-left:1px solid var(--rule);overflow-y:auto;padding-block:max(20px,env(safe-area-inset-top,0px)) 60px;padding-left:28px;padding-right:max(28px,env(safe-area-inset-right,0px));box-shadow:-12px 0 30px rgba(0,0,0,.12)}
+.drawer .close{position:sticky;top:0;float:right}
+.dossier h2{font:600 24px/1.2 var(--f-display);margin:4px 0 4px}
+.sec{margin-top:22px}
+.sec>h3{font:500 11px var(--f-data);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-2);margin:0 0 8px;padding-bottom:6px;border-bottom:1px solid var(--rule)}
+.facts{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.fact{background:var(--sheet);border:1px solid var(--rule);padding:10px 12px;min-width:0}
+.fact .l{font-size:12px;color:var(--ink-2)}
+.fact .v{font-weight:600;margin-top:2px;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--sheet);border:1px solid var(--rule);padding:2px 8px;font-size:12.5px}
+.chip.neg{border-color:var(--bad);color:var(--bad)}.chip.pos{border-color:var(--ok);color:var(--ok)}
+ul.plain{margin:0;padding-left:18px}ul.plain li{margin:3px 0}
+.ev{display:grid;grid-template-columns:120px minmax(0,1fr);gap:4px 14px;padding:10px 0;border-bottom:1px solid var(--rule-2);font-size:13px}
+.ev .f{font:500 12px var(--f-data);color:var(--ink-2)}
+.ev q{display:block;color:var(--ink-2);font-style:italic;margin-top:3px}
+.ev q::before,.ev q::after{content:""}
+.review-form{display:grid;gap:10px;background:var(--sheet);border:1px solid var(--rule);padding:14px}
+.review-form select,.review-form input,.review-form textarea{background:var(--paper);border:1px solid var(--rule);padding:8px 10px;width:100%}
+.review-form textarea{min-height:80px;resize:vertical}
+.toast{position:fixed;left:50%;bottom:max(20px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;font-size:13px}
+.kv{display:grid;grid-template-columns:200px minmax(0,1fr);gap:6px 16px;font-size:13px}
+.kv dt{color:var(--ink-2)}.kv dd{margin:0;overflow-wrap:anywhere}
+.terms{columns:2 260px;column-gap:24px;font-size:13px}
+.terms div{break-inside:avoid;margin-bottom:12px}
+@media (max-width:860px){
+  .app{grid-template-columns:1fr}
+  .rail{position:sticky;top:0;height:auto;padding:12px 0;z-index:5;flex-direction:row;align-items:center;gap:10px;overflow-x:auto}
+  .brand{padding:0 16px;flex:0 0 auto}.brand span{display:none}
+  .nav{flex-direction:row}.nav button{border-left:0;border-bottom:3px solid transparent;padding:8px 12px;gap:6px}
+  .nav button[aria-current="true"]{border-bottom-color:#d48a93}
+  .nav button{white-space:nowrap}
+  .filters label{white-space:nowrap}
+  .rail .foot{display:none}
+  main{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .grid2{grid-template-columns:1fr}
+  .drawer{padding-left:16px;padding-right:max(16px,env(safe-area-inset-right,0px))}
+  .ev{grid-template-columns:1fr}.kv{grid-template-columns:1fr}
+  .bar{grid-template-columns:110px 1fr 30px}
+}
+@media (prefers-reduced-motion:no-preference){.drawer{animation:slide .18s ease-out}@keyframes slide{from{transform:translateX(24px);opacity:.6}}}
+</style>
+</head>
+<body>
+<div class="app">
+  <nav class="rail" aria-label="Views">
+    <div class="brand"><b>TrueGrit × VIMANA</b><span>Acquisition research</span></div>
+    <div class="nav" id="nav"></div>
+    <div class="foot" id="foot"></div>
+  </nav>
+  <main id="main"></main>
+</div>
+<div id="drawerRoot"></div>
+<div id="toast" class="toast" hidden></div>
+<script id="__data" type="application/json">__DATA_PLACEHOLDER__</script>
+<script>
+(function(){
+var REVIEW_URL = "__REVIEW_URL__";
+var ACCESS_KEY = "__ACCESS_KEY__";
+var raw = document.getElementById('__data').textContent;
+var D;
+try { D = JSON.parse(decodeURIComponent(escape(atob(raw)))); } catch (e) { D = { leads: [], analysis: [], sources: [], review: [], runs: [], dashboard: [], config: {} }; }
+
+function esc(s){ return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+function val(v){ return (v === null || v === undefined || v === '' || v === 'Unknown' || v === 'n/a') ? null : v; }
+function num(v){ var n = Number(v); return isFinite(n) && v !== '' && v !== null ? n : null; }
+function list(s){ return String(s || '').split(/;\s*/).map(function(x){ return x.trim(); }).filter(Boolean); }
+function fmtDate(s){ if(!s) return ''; var d = new Date(s); return isNaN(d) ? String(s) : d.toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'}); }
+function money(n){ n = num(n); if (n === null) return null; return n >= 1e6 ? '$' + (n/1e6).toFixed(1) + 'M' : '$' + Math.round(n).toLocaleString(); }
+
+// ---- join records by company_id
+var byId = {};
+function rec(id){ return byId[id] || (byId[id] = { id: id, lead: {}, ai: {}, review: null, sources: [] }); }
+(D.leads||[]).forEach(function(r){ if(r.company_id) rec(r.company_id).lead = r; });
+(D.analysis||[]).forEach(function(r){ if(r.company_id) rec(r.company_id).ai = r; });
+(D.review||[]).forEach(function(r){ if(r.company_id && byId[r.company_id]) byId[r.company_id].review = r; });
+(D.sources||[]).forEach(function(r){ if(r.company_id && byId[r.company_id]) byId[r.company_id].sources.push(r); });
+var firms = Object.keys(byId).map(function(k){
+  var f = byId[k], L = f.lead, A = f.ai;
+  f.name = L.company_name || A.company_name || k;
+  f.state = L.state || A.state || '';
+  f.city = L.city || '';
+  f.fit = L.final_fit || A.final_fit || 'Insufficient Information';
+  f.score = num(A.normalized_score !== undefined ? A.normalized_score : L.normalized_score);
+  f.coverage = num(A.evidence_coverage_pct);
+  f.ins = num(L.insurance_score !== undefined ? L.insurance_score : A.insurance_score);
+  f.insBand = L.insurance_band || A.insurance_band || '';
+  f.att = num(L.attorney_count);
+  f.sample = (L.data_mode || A.data_mode) !== 'LIVE';
+  f.decision = f.review && f.review.reviewer_decision ? f.review.reviewer_decision : '';
+  f.reviewStatus = f.decision ? 'Reviewed' : (L.review_status || (f.review ? 'Needs review' : (f.fit === 'Low Fit' ? 'Screened out' : 'Needs more evidence')));
+  f.last = L.last_collected_at || A.analyzed_at || '';
+  f.missing = list(A.missing_information);
+  // field status from evidence log
+  f.statusOf = function(field){
+    var hits = f.sources.filter(function(s){ return s.field === field; });
+    if (!hits.length) return null;
+    var st = hits.map(function(h){ return h.status; });
+    var vals = {}; hits.forEach(function(h){ if (val(h.value)) vals[String(h.value).toLowerCase()] = 1; });
+    if (Object.keys(vals).length > 1 && st.indexOf('verified') > -1) return 'conflicting';
+    return st.indexOf('verified') > -1 ? 'verified' : st[0];
+  };
+  return f;
+});
+var hasLive = firms.some(function(f){ return !f.sample; });
+function vis(f){ return !(state.hideSample && f.sample); }
+function inQueue(f){ return f.review && (f.decision || f.fit === 'High Fit' || f.fit === 'Moderate Fit'); }
+var counts = function(fn){ return firms.filter(function(f){ return vis(f) && fn(f); }).length; };
+
+var cfg = D.config || {};
+var state = { view: (location.hash || '#overview').slice(1), q: '', st: '', fit: '', rs: '', hideSample: hasLive, sort: 'score', dir: -1 };
+var VIEWS = [
+  ['overview','Overview', function(){ return ''; }],
+  ['pipeline','Firm pipeline', function(){ return counts(function(){ return true; }); }],
+  ['review','Review queue', function(){ return counts(function(f){ return inQueue(f) && !f.decision; }); }],
+  ['runs','Workflow runs', function(){ return (D.runs||[]).length; }],
+  ['criteria','Criteria', function(){ return ''; }]
+];
+function fitPill(fit){
+  var c = fit === 'High Fit' ? 'p-high' : fit === 'Moderate Fit' ? 'p-mod' : fit === 'Low Fit' ? 'p-low' : 'p-ins';
+  return '<span class="pill ' + c + '">' + esc(fit) + '</span>';
+}
+function stTag(s){ if(!s) return ''; var label = {verified:'Verified',estimated:'Estimated',missing:'Missing',unknown:'Missing',conflicting:'Conflicting',sample_demo:'Sample'}[s] || s; return '<span class="tag s-' + esc(s) + '">' + esc(label) + '</span>'; }
+
+function renderNav(){
+  document.getElementById('nav').innerHTML = VIEWS.map(function(v){
+    var c = v[2](); return '<button data-v="' + v[0] + '" aria-current="' + (state.view === v[0]) + '"><span>' + v[1] + '</span><span class="ct">' + (c === '' ? '' : c) + '</span></button>';
+  }).join('');
+  document.getElementById('foot').innerHTML = 'Data refreshed<br>' + esc(fmtDate(D.generated_at)) + '<br><br>Research only. A person decides whether to pursue any firm.';
+}
+document.getElementById('nav').addEventListener('click', function(e){ var b = e.target.closest('button'); if(!b) return; location.hash = b.getAttribute('data-v'); });
+window.addEventListener('hashchange', function(){ state.view = (location.hash || '#overview').slice(1); render(); });
+
+function sampleBanner(){
+  var s = firms.filter(function(f){ return f.sample; }).length;
+  if (!s) return '';
+  return '<div class="banner">' + (state.hideSample ? s + ' sample/demo records from early test runs are hidden. Untick \u201cHide sample data\u201d in the Firm pipeline to show them.' : s + ' of ' + firms.length + ' records are sample/demo data from test runs, not real firms.') + '</div>';
+}
+
+function viewOverview(){
+  var live = firms.filter(function(f){ return !f.sample; });
+  var shown = firms.filter(vis);
+  var dash = (D.dashboard || []).slice(-1)[0] || {};
+  var fits = ['High Fit','Moderate Fit','Low Fit','Insufficient Information'];
+  var max = Math.max(1, Math.max.apply(null, fits.map(function(k){ return counts(function(f){ return f.fit === k; }); })));
+  var miss = {}; shown.forEach(function(f){ f.missing.forEach(function(m){ if(/^Unscored/.test(m)) return; miss[m] = (miss[m]||0) + 1; }); });
+  var topMiss = Object.keys(miss).sort(function(a,b){ return miss[b]-miss[a]; }).slice(0,6);
+  var withEv = counts(function(f){ return f.sources.some(function(s){ return s.status === 'verified' && /^https?:/.test(s.source_url || ''); }); });
+  var pending = counts(function(f){ return inQueue(f) && !f.decision; });
+  var lastRun = (D.runs || []).slice(-1)[0] || {};
+  var summary = dash.executive_summary || dash.ai_executive_summary || dash.summary || '';
+  var top = shown.filter(function(f){ return f.fit === 'High Fit' || f.fit === 'Moderate Fit'; }).sort(function(a,b){ return (b.score||0)-(a.score||0); }).slice(0,6);
+  return '<div class="head"><div><div class="eyebrow">Pilot · Florida & Georgia insurance-defense firms</div><h1>Research overview</h1><div class="sub">Where the pipeline stands: firms found, how they screen against the sponsor criteria, and what still needs a person to check.</div></div></div>' + sampleBanner() +
+  '<div class="kpis">' +
+    '<div class="kpi"><div class="l">Firms researched</div><div class="v">' + shown.length + '</div><div class="n">' + live.length + ' live · ' + counts(function(f){return f.state==='FL';}) + ' FL · ' + counts(function(f){return f.state==='GA';}) + ' GA</div></div>' +
+    '<div class="kpi"><div class="l">High or moderate fit</div><div class="v">' + counts(function(f){ return f.fit==='High Fit'||f.fit==='Moderate Fit'; }) + '</div><div class="n">Provisional weights</div></div>' +
+    '<div class="kpi"><div class="l">Awaiting review</div><div class="v">' + pending + '</div><div class="n">In the review queue</div></div>' +
+    '<div class="kpi"><div class="l">With sourced evidence</div><div class="v">' + withEv + '</div><div class="n">At least one verified, linked claim</div></div>' +
+    '<div class="kpi"><div class="l">Last run</div><div class="v" style="font-size:18px">' + esc(fmtDate(lastRun.finished_at || lastRun.run_at || lastRun.generated_at || D.generated_at)) + '</div><div class="n">' + esc(lastRun.status || lastRun.run_status || '') + '</div></div>' +
+  '</div>' +
+  '<div class="grid2"><div class="panel"><h2>Fit distribution</h2><div class="bars">' + fits.map(function(k){ var c = counts(function(f){ return f.fit===k; }); return '<div class="bar"><span>' + k + '</span><span class="t"><i style="width:' + (c/max*100) + '%"></i></span><span class="c">' + c + '</span></div>'; }).join('') + '</div>' +
+  '<h2 style="margin-top:20px">Most common gaps</h2>' + (topMiss.length ? '<ul class="plain">' + topMiss.map(function(m){ return '<li>' + esc(m) + ' <span class="muted">(' + miss[m] + ')</span></li>'; }).join('') + '</ul>' : '<div class="muted">No gaps recorded yet.</div>') + '</div>' +
+  '<div class="panel"><h2>Leading candidates</h2>' + (top.length ? top.map(function(f){ return '<div style="padding:8px 0;border-bottom:1px solid var(--rule-2);cursor:pointer" data-open="' + esc(f.id) + '"><div class="row" style="justify-content:space-between"><span class="fname">' + esc(f.name) + '</span>' + fitPill(f.fit) + '</div><div class="muted">' + esc([f.city, f.state].filter(Boolean).join(', ')) + (f.score !== null ? ' · score ' + f.score : '') + (f.ins !== null ? ' · insurance terms ' + (f.ins > 0 ? '+' : '') + f.ins : '') + '</div></div>'; }).join('') : '<div class="muted">No high or moderate fits yet.</div>') + '</div></div>' +
+  (summary ? '<div class="panel" style="margin-top:18px"><h2>AI run summary</h2><div class="summary">' + esc(summary) + '</div><div class="muted" style="margin-top:8px">Generated by the workflow. Check claims against the evidence in each firm file.</div></div>' : '');
+}
+
+function filtered(){
+  var q = state.q.toLowerCase();
+  var out = firms.filter(function(f){
+    if (state.hideSample && f.sample) return false;
+    if (state.st && f.state !== state.st) return false;
+    if (state.fit && f.fit !== state.fit) return false;
+    if (state.rs && f.reviewStatus !== state.rs) return false;
+    if (q && (f.name + ' ' + f.city + ' ' + (f.lead.practice_areas||'')).toLowerCase().indexOf(q) === -1) return false;
+    return true;
+  });
+  var key = state.sort, dir = state.dir;
+  out.sort(function(a,b){
+    var x = a[key], y = b[key];
+    if (x === null || x === undefined || x === '') return 1; if (y === null || y === undefined || y === '') return -1;
+    return (x > y ? 1 : x < y ? -1 : 0) * dir;
+  });
+  return out;
+}
+function viewPipeline(){
+  var rs = ['Needs review','Reviewed','Needs more evidence','Screened out'];
+  var rows = filtered();
+  var cols = [['name','Firm'],['fit','Practice fit'],['score','Fit score'],['ins','Insurance terms'],['att','Attorneys'],['rev','Est. revenue'],['ent','Entity'],['yrs','Years'],['reviewStatus','Review'],['last','Last researched']];
+  return '<div class="head"><div><h1>Firm pipeline</h1><div class="sub">Every firm the workflow has researched. Select a row to open its file with the evidence behind each field.</div></div></div>' + sampleBanner() +
+  '<div class="filters"><input id="fq" type="search" placeholder="Search firm, city or practice area" value="' + esc(state.q) + '" aria-label="Search">' +
+  '<select id="fst" aria-label="State"><option value="">All states</option>' + ['FL','GA'].map(function(s){ return '<option' + (state.st===s?' selected':'') + '>' + s + '</option>'; }).join('') + '</select>' +
+  '<select id="ffit" aria-label="Practice fit"><option value="">Any fit</option>' + ['High Fit','Moderate Fit','Low Fit','Insufficient Information'].map(function(s){ return '<option' + (state.fit===s?' selected':'') + '>' + s + '</option>'; }).join('') + '</select>' +
+  '<select id="frs" aria-label="Review status"><option value="">Any review status</option>' + rs.map(function(s){ return '<option' + (state.rs===s?' selected':'') + '>' + s + '</option>'; }).join('') + '</select>' +
+  '<label><input id="fsm" type="checkbox"' + (state.hideSample?' checked':'') + '> Hide sample data</label></div>' +
+  '<div class="tablewrap"><table><thead><tr>' + cols.map(function(c){ return '<th data-k="' + c[0] + '"' + (state.sort===c[0] ? ' aria-sort="' + (state.dir>0?'ascending':'descending') + '"' : '') + '>' + c[1] + '</th>'; }).join('') + '</tr></thead><tbody>' +
+  (rows.length ? rows.map(function(f){
+    var L = f.lead;
+    var attS = f.att !== null ? (f.statusOf('attorney_count') || 'estimated') : 'missing';
+    return '<tr data-open="' + esc(f.id) + '"><td><div class="fname">' + esc(f.name) + '</div><div class="muted">' + esc([f.city, f.state].filter(Boolean).join(', ')) + (f.sample ? ' · <span class="s-sample_demo">sample</span>' : '') + '</div></td>' +
+      '<td>' + fitPill(f.fit) + '</td>' +
+      '<td class="num">' + (f.score !== null ? f.score : '—') + (f.coverage !== null ? '<div class="muted">' + f.coverage + '% coverage</div>' : '') + '</td>' +
+      '<td class="num">' + (f.ins !== null ? (f.ins > 0 ? '+' : '') + f.ins : '—') + '<div class="muted">' + esc(f.insBand) + '</div></td>' +
+      '<td class="num">' + (f.att !== null ? f.att : '—') + stTag(attS) + '</td>' +
+      '<td class="num">' + esc(val(L.revenue_estimate) || val(L.revenue) || '—') + (val(L.revenue) ? stTag(L.revenue_status === 'verified' ? 'verified' : 'estimated') : '') + '</td>' +
+      '<td>' + esc(val(L.entity_status) || '—') + (L.entity_status_label ? stTag(L.entity_status_label === 'Verified' ? 'verified' : 'missing') : '') + '</td>' +
+      '<td class="num">' + esc(val(L.years_in_operation) || '—') + '</td>' +
+      '<td>' + esc(f.reviewStatus) + (f.decision ? '<div class="muted">' + esc(f.decision) + '</div>' : '') + '</td>' +
+      '<td class="num">' + esc(fmtDate(f.last)) + '</td></tr>';
+  }).join('') : '<tr><td colspan="10" class="empty">No firms match these filters.</td></tr>') + '</tbody></table></div>';
+}
+function bindPipeline(){
+  var m = document.getElementById('main');
+  ['fq','fst','ffit','frs','fsm'].forEach(function(id){
+    var el = document.getElementById(id); if(!el) return;
+    el.addEventListener(id === 'fq' ? 'input' : 'change', function(){
+      state.q = document.getElementById('fq').value; state.st = document.getElementById('fst').value; state.fit = document.getElementById('ffit').value;
+      state.rs = document.getElementById('frs').value; state.hideSample = document.getElementById('fsm').checked;
+      var pos = id === 'fq' ? el.selectionStart : null; render(); if (id === 'fq') { var n = document.getElementById('fq'); n.focus(); n.setSelectionRange(pos,pos); }
+    });
+  });
+  m.querySelectorAll('th[data-k]').forEach(function(th){ th.addEventListener('click', function(){ var k = th.getAttribute('data-k'); if (state.sort === k) state.dir *= -1; else { state.sort = k; state.dir = (k === 'name' || k === 'reviewStatus') ? 1 : -1; } render(); }); });
+}
+
+function viewReview(){
+  var q = firms.filter(function(f){ return vis(f) && inQueue(f); }).sort(function(a,b){ return (a.decision?1:0)-(b.decision?1:0) || (b.score||0)-(a.score||0); });
+  return '<div class="head"><div><h1>Review queue</h1><div class="sub">High and moderate fits wait here for a person. Check the evidence, correct anything wrong, and record a decision with your reasoning. Nothing here means a firm is for sale or approved for outreach.</div></div></div>' + sampleBanner() +
+  (q.length ? '<div class="cards">' + q.map(function(f){
+    var R = f.review;
+    return '<div class="card"><div class="top"><div><div class="fname">' + esc(f.name) + '</div><div class="muted">' + esc([f.city, f.state].filter(Boolean).join(', ')) + '</div></div>' + fitPill(f.fit) + '</div>' +
+    '<dl><dt>Score</dt><dd class="num">' + (f.score !== null ? f.score : '—') + (f.coverage !== null ? ' · ' + f.coverage + '% coverage' : '') + '</dd>' +
+    '<dt>Why queued</dt><dd>' + esc(R.why_queued || '') + '</dd>' +
+    '<dt>Verify</dt><dd>' + esc(list(R.verification_needed).filter(function(x){ return !/^Unscored/.test(x); }).slice(0,4).join('; ') || '—') + '</dd>' +
+    '<dt>Decision</dt><dd>' + (f.decision ? '<b>' + esc(f.decision) + '</b>' + (R.reviewed_by ? ' · ' + esc(R.reviewed_by) : '') + (R.reviewer_notes ? '<div class="muted">' + esc(R.reviewer_notes) + '</div>' : '') : '<span class="s-review">Pending</span>') + '</dd></dl>' +
+    '<div class="row"><button class="btn primary" data-open="' + esc(f.id) + '" data-focus="review">Open file and review</button></div></div>';
+  }).join('') + '</div>' : '<div class="panel empty">Nothing is waiting for review. Firms rated high or moderate fit appear here after a workflow run.</div>');
+}
+
+function viewRuns(){
+  var runs = (D.runs || []).slice().reverse();
+  if (!runs.length) return '<div class="head"><div><h1>Workflow runs</h1></div></div><div class="panel empty">No runs logged yet.</div>';
+  var keys = []; runs.forEach(function(r){ Object.keys(r).forEach(function(k){ if (keys.indexOf(k) === -1 && !/^row_number$/.test(k)) keys.push(k); }); });
+  keys = keys.slice(0, 12);
+  return '<div class="head"><div><h1>Workflow runs</h1><div class="sub">Each run of the n8n research workflow, newest first. Failures and incomplete research show here.</div></div></div>' +
+  '<div class="tablewrap"><table><thead><tr>' + keys.map(function(k){ return '<th>' + esc(k.replace(/_/g,' ')) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+  runs.map(function(r){ return '<tr style="cursor:default">' + keys.map(function(k){ var v = r[k]; var s = String(v == null ? '' : v); var bad = /error|fail/i.test(k) && s && s !== '0'; return '<td class="' + (/^[\d.,:\-TZ ]+$/.test(s) ? 'num' : '') + '"' + (bad ? ' style="color:var(--bad)"' : '') + '>' + esc(s.length > 160 ? s.slice(0,160) + '…' : s) + '</td>'; }).join('') + '</tr>'; }).join('') + '</tbody></table></div>';
+}
+
+function viewCriteria(){
+  var w = cfg.weights || {}, t = cfg.thresholds || {}, loc = cfg.discovery_locations || {};
+  var SC = [['+5','Direct insurance focus','insurance defense, insurer representation, insurance carrier(s), panel counsel, coverage counsel, insurance coverage, duty to defend/indemnify, reservation of rights, bad faith defense, reinsurance, Lloyd’s / London Market, excess carrier, self-insured, TPA, claims professional, claims litigation, subrogation'],
+    ['+3','Insurance-funded defense','casualty defense, general liability, commercial auto, trucking defense, construction defect, premises liability, professional liability, E&O, medical malpractice defense, product liability defense, toxic tort, workers’ compensation defense, EPLI, D&O, cyber liability, property damage, maritime, aviation, fidelity, surety'],
+    ['+1','Relevant only with insurance evidence','commercial litigation, employment defense, construction litigation, healthcare litigation, real estate litigation, class-action defense, appellate, regulatory defense, business torts'],
+    ['−3','Mainly non-insurance work','M&A, corporate transactions, private equity, venture capital, securities, tax, bankruptcy, IP / patent / trademark, antitrust, white collar, trusts & estates, immigration, family law, banking/finance'],
+    ['−5','Wrong side of the insurance ecosystem','plaintiff personal injury / med-mal / product liability / mass tort, contingency fee, “no fee unless we win”, accident victims, policyholder representation, suing insurance companies, bad-faith claims against insurers']];
+  return '<div class="head"><div><h1>Criteria & settings</h1><div class="sub">What the workflow searches for and how it scores. Change these in the <b>Run Configuration</b> node of the n8n workflow. Fit weights are provisional until the sponsors confirm a rubric.</div></div></div>' +
+  '<div class="grid2"><div class="panel"><h2>Scope</h2><dl class="kv">' +
+  '<dt>Run mode</dt><dd>' + esc(cfg.run_mode || '') + (cfg.demo_mode ? ' (demo size)' : '') + '</dd>' +
+  '<dt>States</dt><dd>' + esc((cfg.states || []).join(', ')) + '</dd>' +
+  Object.keys(loc).map(function(k){ return '<dt>' + esc(k) + ' search cities</dt><dd>' + esc(loc[k].join(', ')) + '</dd>'; }).join('') +
+  '<dt>Search phrases</dt><dd>' + esc((cfg.search_queries || []).join(' · ')) + '</dd>' +
+  '<dt>Firms per state</dt><dd>' + esc(cfg.demo_mode ? cfg.demo_limit_per_state + ' (demo)' : cfg.limit_per_state) + '</dd>' +
+  '<dt>Size screen</dt><dd>' + esc(((cfg.size_band_attorneys||{}).min || 10) + '–' + ((cfg.size_band_attorneys||{}).max || 400)) + ' attorneys · revenue ≈ attorneys × $' + (((cfg.revenue_per_attorney||{}).low||300000)/1000) + 'k–$' + (((cfg.revenue_per_attorney||{}).high||500000)/1000) + 'k (estimate)</dd>' +
+  '<dt>Pages scraped per site</dt><dd>' + esc(cfg.scrape_max_pages || 8) + '</dd>' +
+  '<dt>Sources</dt><dd>SerpApi (Google Maps) · Apify website crawler · Sunbiz Daily · USAspending.gov · OpenAI classification</dd></dl></div>' +
+  '<div class="panel"><h2>Fit score weights</h2><div class="bars">' + Object.keys(w).map(function(k){ return '<div class="bar"><span>' + esc(k.replace(/_/g,' ')) + '</span><span class="t"><i style="width:' + (w[k]) + '%"></i></span><span class="c">' + w[k] + '</span></div>'; }).join('') + '</div>' +
+  '<dl class="kv" style="margin-top:14px"><dt>High fit</dt><dd>normalized score ≥ ' + esc(t.high) + '</dd><dt>Moderate fit</dt><dd>≥ ' + esc(t.moderate) + '</dd><dt>Minimum evidence coverage</dt><dd>' + esc(t.min_coverage) + '% of the model, else “Insufficient Information”</dd>' +
+  '<dt>Insurance term bands</dt><dd>strong ≥ ' + esc((cfg.scorecard_bands||{}).strong || 15) + ', moderate ≥ ' + esc((cfg.scorecard_bands||{}).moderate || 5) + ' (to be benchmarked)</dd></dl></div></div>' +
+  '<div class="panel" style="margin-top:18px"><h2>Insurance keyword scorecard (sponsor criteria v2.3)</h2><div class="muted" style="margin-bottom:12px">Each term found on the firm’s website counts once. The total is a datapoint for analysts, blended 50/50 with the AI practice assessment in the fit score.</div><div class="terms">' +
+  SC.map(function(s){ return '<div><b class="num">' + s[0] + '</b> ' + esc(s[1]) + '<div class="muted">' + esc(s[2]) + '</div></div>'; }).join('') + '</div></div>';
+}
+
+// ---- dossier
+function openFirm(id, focusReview){
+  var f = byId[id]; if (!f) return;
+  var L = f.lead, A = f.ai, R = f.review || {};
+  var bd = []; try { bd = JSON.parse(A.score_breakdown_json || '[]'); } catch(e) {}
+  var ev = f.sources.slice().sort(function(a,b){ var o = {verified:0,estimated:1,sample_demo:2,unknown:3}; return (o[a.status]||4)-(o[b.status]||4); });
+  function fact(label, v, st){ return '<div class="fact"><div class="l">' + label + '</div><div class="v">' + (val(v) !== null ? esc(v) : '<span class="muted">Not found</span>') + (val(v) !== null ? stTag(st) : stTag('missing')) + '</div></div>'; }
+  var terms = list(L.insurance_terms_matched || A.insurance_terms_matched);
+  var html = '<div class="scrim" data-close></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="Firm file"><button class="btn close" data-close>Close</button><div class="dossier">' +
+  '<div class="eyebrow">Firm file · ' + esc(f.id) + (f.sample ? ' · sample data' : '') + '</div><h2>' + esc(f.name) + '</h2>' +
+  '<div class="row">' + fitPill(f.fit) + '<span class="muted">' + esc([L.address || [f.city, f.state].filter(Boolean).join(', ')].join('')) + '</span></div>' +
+  '<div class="row muted" style="margin-top:6px">' + (L.website ? '<a href="' + esc(L.website) + '" target="_blank" rel="noopener">' + esc(L.domain || L.website) + '</a>' : '') + (L.phone ? ' · ' + esc(L.phone) : '') + (L.google_category ? ' · ' + esc(String(L.google_category).split(' | ')[0]) : '') + '</div>' +
+  (L.description ? '<p style="max-width:68ch">' + esc(L.description) + '</p>' : '') +
+
+  '<div class="sec"><h3>Why it may fit</h3><p style="margin:0 0 10px">' + esc(A.ai_reason || 'No AI rationale recorded.') + '</p>' +
+  (bd.length ? '<div class="bars">' + bd.map(function(c){ return '<div class="bar"><span title="' + esc(c.note) + '">' + esc(c.label) + '</span><span class="t"><i style="width:' + (c.scored && c.max ? c.points/c.max*100 : 0) + '%"></i></span><span class="c">' + (c.scored ? c.points + '/' + c.max : '—') + '</span></div>'; }).join('') + '</div><div class="muted" style="margin-top:8px">Score ' + (f.score !== null ? f.score + '/100' : 'n/a') + ' on the evidence available (' + (f.coverage !== null ? f.coverage + '% of the model could be scored' : 'coverage unknown') + '). Dashes are unscored, not zero.</div>' : '') + '</div>' +
+
+  '<div class="sec"><h3>Practice</h3><div class="facts">' + fact('Defense vs plaintiff', L.defense_vs_plaintiff || A.defense_vs_plaintiff, 'estimated') + fact('Civil vs criminal', L.civil_vs_criminal || A.civil_vs_criminal, 'estimated') + fact('Insurance-defense fit (AI)', A.insurance_defense_fit, 'estimated') + fact('Client focus (AI)', A.b2b_focus, 'estimated') + '</div>' +
+  (list(L.practice_areas || A.practice_areas).length ? '<div class="chips" style="margin-top:10px">' + list(L.practice_areas || A.practice_areas).map(function(p){ return '<span class="chip">' + esc(p) + '</span>'; }).join('') + '</div>' : '') +
+  '<div style="margin-top:12px"><b>Insurance keyword score: ' + (f.ins !== null ? (f.ins > 0 ? '+' : '') + f.ins : 'n/a') + '</b> <span class="muted">' + esc(f.insBand) + '</span></div>' +
+  (terms.length ? '<div class="chips" style="margin-top:6px">' + terms.map(function(t){ return '<span class="chip ' + (/\(-/.test(t) ? 'neg' : 'pos') + '">' + esc(t) + '</span>'; }).join('') + '</div>' : '') +
+  (val(L.carrier_relationships) ? '<div style="margin-top:10px"><span class="muted">Carriers named on website:</span> ' + esc(L.carrier_relationships) + '</div>' : '') + '</div>' +
+
+  '<div class="sec"><h3>Size, entity and financial indicators</h3><div class="facts">' +
+  fact('Attorneys', val(L.attorney_count), f.statusOf('attorney_count') || 'estimated') +
+  fact('Employees', val(L.employee_count), f.statusOf('employee_count') || 'estimated') +
+  fact('Estimated revenue', val(L.revenue_estimate) || val(L.revenue), L.revenue_status === 'verified' ? 'verified' : 'estimated') +
+  fact('In 10–400 attorney band', val(L.in_size_band), 'estimated') +
+  fact('Offices', val(L.office_count) || val(L.offices), f.statusOf('office_count') || 'estimated') +
+  fact('Year founded', val(L.year_founded), f.statusOf('year_founded') || 'estimated') +
+  fact('Entity status', val(L.entity_status) ? L.entity_status + (L.entity_name ? ' · ' + L.entity_name : '') : null, L.entity_status_label === 'Verified' ? 'verified' : 'missing') +
+  fact('Federal contract awards', num(L.federal_awards_count) ? L.federal_awards_count + ' · ' + money(L.federal_awards_total) : null, 'verified') +
+  '</div>' + (L.entity_source_url ? '<div class="muted" style="margin-top:8px"><a href="' + esc(L.entity_source_url) + '" target="_blank" rel="noopener">Check the state registry record</a></div>' : '') +
+  (val(L.leadership) ? '<div style="margin-top:10px"><span class="muted">Leadership named publicly:</span> ' + esc(L.leadership) + '</div>' : '') + '</div>' +
+
+  ((list(A.risk_factors).length || f.missing.length) ? '<div class="sec"><h3>Flags and gaps</h3>' + (list(A.risk_factors).length ? '<ul class="plain">' + list(A.risk_factors).map(function(r){ return '<li style="color:var(--bad)">' + esc(r) + '</li>'; }).join('') + '</ul>' : '') + (f.missing.length ? '<div class="muted" style="margin-top:8px">Missing: ' + esc(f.missing.filter(function(m){ return !/^Unscored/.test(m); }).join('; ')) + '</div>' : '') + '<div class="muted" style="margin-top:6px">Missing information is not evidence of poor fit.</div></div>' : '') +
+
+  '<div class="sec"><h3>Evidence (' + ev.length + ')</h3>' + (ev.length ? ev.map(function(s){ return '<div class="ev"><div class="f">' + esc(s.field) + stTag(s.status) + '</div><div><div>' + esc(s.value) + '</div><div class="muted">' + esc(s.source) + (s.source_url && /^https?:/.test(s.source_url) ? ' · <a href="' + esc(s.source_url) + '" target="_blank" rel="noopener">source</a>' : '') + ' · retrieved ' + esc(fmtDate(s.extracted_at)) + '</div>' + (s.evidence_quote ? '<q>' + esc(s.evidence_quote) + '</q>' : '') + '</div></div>'; }).join('') : '<div class="muted">No evidence rows logged for this firm.</div>') + '</div>' +
+
+  '<div class="sec" id="reviewSec"><h3>Reviewer decision</h3>' +
+  (f.decision ? '<div style="margin-bottom:10px">Current: <b>' + esc(f.decision) + '</b>' + (R.reviewed_by ? ' by ' + esc(R.reviewed_by) : '') + (R.reviewed_at ? ' on ' + esc(fmtDate(R.reviewed_at)) : '') + (R.reviewer_notes ? '<div class="muted">' + esc(R.reviewer_notes) + '</div>' : '') + '</div>' : '') +
+  '<form class="review-form" id="rf"><label for="rd">Decision</label><select id="rd" required><option value="">Choose…</option><option>Investigate further</option><option>Needs more evidence</option><option>Not a fit</option><option>Data corrected</option></select>' +
+  '<label for="rc">Corrections (optional) — e.g. attorney_count = 42</label><input id="rc" placeholder="field = correct value; field = correct value">' +
+  '<label for="rn">Rationale</label><textarea id="rn" required placeholder="What you checked and why you decided this"></textarea>' +
+  '<label for="rb">Your name</label><input id="rb" required autocomplete="name">' +
+  '<div class="row"><button class="btn primary" type="submit">Save decision</button><span class="muted">Saved to the Review_Queue sheet. A person decides whether to pursue a firm.</span></div></form></div>' +
+  '</div></aside>';
+  var root = document.getElementById('drawerRoot'); root.innerHTML = html;
+  try { var nm = localStorage.getItem('tg_reviewer'); if (nm) document.getElementById('rb').value = nm; } catch(e) {}
+  root.querySelectorAll('[data-close]').forEach(function(b){ b.addEventListener('click', closeFirm); });
+  document.getElementById('rf').addEventListener('submit', function(e){ e.preventDefault(); saveReview(f); });
+  if (focusReview) document.getElementById('reviewSec').scrollIntoView(); else root.querySelector('.drawer').scrollTop = 0;
+  root.querySelector('.close').focus();
+}
+function closeFirm(){ document.getElementById('drawerRoot').innerHTML = ''; }
+document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeFirm(); });
+function toast(msg){ var t = document.getElementById('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toast._t); toast._t = setTimeout(function(){ t.hidden = true; }, 3500); }
+function saveReview(f){
+  var body = { key: ACCESS_KEY, company_id: f.id, company_name: f.name, decision: document.getElementById('rd').value, corrections: document.getElementById('rc').value, notes: document.getElementById('rn').value, reviewer: document.getElementById('rb').value };
+  try { localStorage.setItem('tg_reviewer', body.reviewer); } catch(e) {}
+  var btn = document.querySelector('#rf button[type=submit]'); btn.disabled = true; btn.textContent = 'Saving…';
+  fetch(REVIEW_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=UTF-8' }, body: JSON.stringify(body) })
+    .then(function(r){ return r.json().catch(function(){ return { ok: r.ok }; }); })
+    .then(function(res){
+      if (!res || !res.ok) throw new Error((res && res.error) || 'not saved');
+      f.review = Object.assign({}, f.review || {}, { reviewer_decision: body.decision, reviewer_notes: body.notes, reviewed_by: body.reviewer, reviewed_at: new Date().toISOString(), reviewer_corrections: body.corrections });
+      f.decision = body.decision; f.reviewStatus = 'Reviewed';
+      toast('Decision saved for ' + f.name); closeFirm(); render();
+    })
+    .catch(function(err){ btn.disabled = false; btn.textContent = 'Save decision'; toast('Could not save: ' + err.message + '. Check your connection and try again.'); });
+}
+document.addEventListener('click', function(e){ var o = e.target.closest('[data-open]'); if (o) openFirm(o.getAttribute('data-open'), o.getAttribute('data-focus') === 'review'); });
+
+function render(){
+  if (!VIEWS.some(function(v){ return v[0] === state.view; })) state.view = 'overview';
+  renderNav();
+  var m = document.getElementById('main');
+  m.innerHTML = state.view === 'pipeline' ? viewPipeline() : state.view === 'review' ? viewReview() : state.view === 'runs' ? viewRuns() : state.view === 'criteria' ? viewCriteria() : viewOverview();
+  if (state.view === 'pipeline') bindPipeline();
+}
+render();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,2416 @@
+{
+  "name": "Agentic Acquisition Intelligence - TrueGrit copy 2",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "c4e0115d-d155-477f-bab4-219c82d72da1",
+      "name": "Manual Test Run",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c1",
+              "name": "run_mode",
+              "type": "string",
+              "value": "live"
+            },
+            {
+              "id": "c2",
+              "name": "demo_mode",
+              "type": "boolean",
+              "value": false
+            },
+            {
+              "id": "c3",
+              "name": "limit_per_state",
+              "type": "number",
+              "value": 8
+            },
+            {
+              "id": "c4",
+              "name": "demo_limit_per_state",
+              "type": "number",
+              "value": 2
+            },
+            {
+              "id": "c5",
+              "name": "states",
+              "type": "array",
+              "value": "={{ [\"FL\",\"GA\"] }}"
+            },
+            {
+              "id": "c6",
+              "name": "search_queries",
+              "type": "array",
+              "value": "={{ [\"insurance defense law firm\",\"insurance defense litigation attorneys\",\"civil defense law firm\"] }}"
+            },
+            {
+              "id": "c7",
+              "name": "request_interval_ms",
+              "type": "number",
+              "value": 1500
+            },
+            {
+              "id": "c8",
+              "name": "ai_batch_size",
+              "type": "number",
+              "value": 2
+            },
+            {
+              "id": "c9",
+              "name": "weights",
+              "type": "object",
+              "value": "={{ { insurance_defense: 30, geography: 15, b2b: 15, size: 15, history: 10, strategic: 10, completeness: 5 } }}"
+            },
+            {
+              "id": "c10",
+              "name": "thresholds",
+              "type": "object",
+              "value": "={{ { high: 70, moderate: 45, min_coverage: 40 } }}"
+            },
+            {
+              "id": "c11",
+              "name": "spreadsheet_id",
+              "type": "string",
+              "value": "1wTQMAgBMsag-Bi5BPytrWOMad1csz_2uXGBNsXdbb80"
+            },
+            {
+              "id": "c12",
+              "name": "discovery_locations",
+              "type": "object",
+              "value": "={{ { FL: [\"Miami\",\"Tampa\",\"Orlando\",\"Jacksonville\",\"Fort Lauderdale\",\"Tallahassee\"], GA: [\"Atlanta\",\"Savannah\",\"Augusta\",\"Macon\"] } }}"
+            },
+            {
+              "id": "c13",
+              "name": "scrape_max_pages",
+              "type": "number",
+              "value": 8
+            },
+            {
+              "id": "c14",
+              "name": "scorecard_bands",
+              "type": "object",
+              "value": "={{ { strong: 15, moderate: 5 } }}"
+            },
+            {
+              "id": "c15",
+              "name": "revenue_per_attorney",
+              "type": "object",
+              "value": "={{ { low: 300000, high: 500000 } }}"
+            },
+            {
+              "id": "c16",
+              "name": "size_band_attorneys",
+              "type": "object",
+              "value": "={{ { min: 10, max: 400 } }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "29bec70e-eedf-4160-b2f9-79a163b486d0",
+      "name": "Run Configuration",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        272,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "triggerAtHour": 6
+            }
+          ]
+        }
+      },
+      "id": "36b611e5-f71d-4f72-b427-86a58a3568a9",
+      "name": "Weekly Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -160,
+        384
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "m1",
+              "leftValue": "={{ $json.run_mode }}",
+              "rightValue": "sample",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "bf647ff6-ddff-48b2-82cd-1ce1dc6c88c9",
+      "name": "Sample Mode?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        688,
+        -592
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const cfg = $('Run Configuration').first().json;\nconst limit = cfg.demo_mode ? cfg.demo_limit_per_state : cfg.limit_per_state;\nconst STATES = { florida: 'FL', fl: 'FL', georgia: 'GA', ga: 'GA' };\nconst LEGAL = ['llp', 'llc', 'pllc', 'pa', 'pc', 'plc', 'chartered', 'lc'];\nconst NON_TARGET = /(personal injury|criminal|divorce|family law|immigration|bankruptcy|estate planning)/i;\n\nfunction normName(n) {\n  let s = String(n || '').toLowerCase().split('&').join(' and ').replace(/[^a-z0-9 ]/g, ' ').replace(/ +/g, ' ').trim();\n  return s.split(' ').filter(function (t) { return LEGAL.indexOf(t) === -1; }).join(' ');\n}\nfunction normDomain(u) {\n  let s = String(u || '').toLowerCase().trim().replace(/^[a-z]+:[/][/]/, '').replace(/^www[.]/, '');\n  return s.split('/')[0].split('?')[0].split(':')[0];\n}\nfunction normPhone(p) {\n  let d = String(p || '').replace(/[^0-9]/g, '');\n  if (d.length === 11 && d.charAt(0) === '1') d = d.slice(1);\n  return d.length === 10 ? '+1' + d : '';\n}\nfunction normState(s, addr) {\n  const k = String(s || '').toLowerCase().trim();\n  if (STATES[k]) return STATES[k];\n  const m = String(addr || '').match(/, (FL|GA)( |,|$)/);\n  return m ? m[1] : '';\n}\nfunction slug(s) { return s.replace(/ /g, '-'); }\n\nconst stats = { discovered: 0, rejected: 0, duplicates_removed: 0, over_limit_dropped: 0 };\nconst rejected = [];\nconst byDomain = {}, byNameLoc = {}, list = [];\n\n$input.all().forEach(function (it) {\n  stats.discovered++;\n  const r = it.json;\n  const nn = normName(r.company_name);\n  const st = normState(r.state, r.address);\n  const dom = normDomain(r.website);\n  let reason = '';\n  if (!nn) reason = 'missing company name';\n  else if (!st) reason = 'state not Florida or Georgia';\n  else if (NON_TARGET.test(r.company_name)) reason = 'name indicates non-target practice area';\n  else if (String(r.business_status || '').indexOf('CLOSED') === 0) reason = 'business closed';\n  if (reason) { stats.rejected++; rejected.push({ name: r.company_name, reason: reason }); return; }\n\n  const rec = Object.assign({}, r, { state: st, normalized_name: nn, domain: dom, phone: normPhone(r.phone) || '' });\n  const k2 = nn + '|' + String(r.city || st).toLowerCase();\n  const existing = (dom && byDomain[dom]) || byNameLoc[k2];\n  if (existing) {\n    stats.duplicates_removed++;\n    ['website', 'phone', 'address', 'city', 'place_id', 'maps_uri'].forEach(function (f) { if (!existing[f] && rec[f]) existing[f] = rec[f]; });\n    if ((rec.website_text || '').length > (existing.website_text || '').length) existing.website_text = rec.website_text;\n    existing.source_urls = Array.from(new Set((existing.source_urls || []).concat(rec.source_urls || [])));\n    existing.sources = (existing.sources || []).concat(rec.sources || []);\n    if (!existing.domain && rec.domain) { existing.domain = rec.domain; byDomain[rec.domain] = existing; }\n    return;\n  }\n  if (dom) byDomain[dom] = rec;\n  byNameLoc[k2] = rec;\n  list.push(rec);\n});\n\nconst perState = {};\nconst out = [];\nlist.forEach(function (rec) {\n  perState[rec.state] = (perState[rec.state] || 0) + 1;\n  if (perState[rec.state] > limit) { stats.over_limit_dropped++; return; }\n  rec.company_id = rec.domain ? rec.domain : slug(rec.normalized_name) + '-' + rec.state.toLowerCase();\n  rec._stats = stats;\n  rec._rejected = rejected;\n  out.push({ json: rec });\n});\nreturn out;"
+      },
+      "id": "5ce87be9-3a20-4cd2-8e79-7bb248370beb",
+      "name": "Clean and Deduplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// LIVE MODE: one discovery request per (state, city, search phrase), fanned out to SerpApi + Apify Maps.\n// Demo mode keeps it tiny: first city per state x first phrase.\nconst cfg = $input.first().json;\nconst names = { FL: 'Florida', GA: 'Georgia', NC: 'North Carolina', SC: 'South Carolina', VA: 'Virginia' };\nconst locs = cfg.discovery_locations || {};\nconst out = [];\nfor (const st of cfg.states) {\n  let cities = locs[st] && locs[st].length ? locs[st] : [names[st] || st];\n  let queries = cfg.search_queries;\n  if (cfg.demo_mode) { cities = cities.slice(0, 1); queries = queries.slice(0, 1); }\n  for (const city of cities) {\n    queries.forEach(function (q, qi) {\n      out.push({ json: { state: st, state_name: names[st] || st, city_hint: city, phrase: q, phrase_index: qi, text_query: q + ' ' + city + ', ' + st } });\n    });\n  }\n}\nreturn out;\n"
+      },
+      "id": "6936fc19-202e-4acf-9e0a-5280ba1b6051",
+      "name": "Build Discovery Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine the normalized discovery records into candidate firms:\n// keep in-scope law firms with a website, merge the same firm found by SerpApi and Apify, cross-reference\n// Sunbiz Daily / USAspending records by name, rank defense-leaning listings first, cap per state,\n// and prepare the Apify website-scraper input.\nconst cfg = $('Run Configuration').first().json;\nconst limit = cfg.demo_mode ? cfg.demo_limit_per_state : cfg.limit_per_state;\nconst maxPages = cfg.scrape_max_pages || 8;\nconst states = cfg.states || ['FL', 'GA'];\nconst now = new Date().toISOString();\nconst LAWY = /(attorney|lawyer|law firm|legal)/i;\nconst DEFENSE = /(insurance defense|defense|insurance attorney|insurance)/i;\nconst OFF = /(personal injury|criminal|family law|immigration|divorce|bankruptcy|estate planning|wrongful death|accident)/i;\nconst KW = ['practice', 'attorney', 'lawyer', 'people', 'professional', 'team', 'about', 'service', 'industr', 'location', 'office', 'firm', 'history', 'client'];\nconst SUFFIX = /\\b(llp|llc|pllc|pa|pc|pl|chartered|inc|corp|corporation|law firm|law group|law offices?|attorneys at law|the|of)\\b/g;\nfunction host(u) { return String(u || '').toLowerCase().trim().replace(/^[a-z]+:[/][/]/, '').replace(/^www[.]/, '').split('/')[0].split('?')[0].split('#')[0].split(':')[0]; }\nfunction core(n) { return String(n || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]/g, ' ').replace(SUFFIX, ' ').replace(/ +/g, ' ').trim(); }\nfunction cleanUrl(u) { const m = String(u || '').trim().match(/^(https?):[/][/]([^/?#]+)/i); return m ? m[1].toLowerCase() + '://' + m[2].toLowerCase() + '/' : ''; }\nfunction mapsUrl(pid) { return pid ? 'https://www.google.com/maps/place/?q=place_id:' + pid : ''; }\n\nconst all = $('Normalize \u2013 Company Discovery Results').all().map(function (i) { return i.json; });\n// Firms already in Company_Leads are skipped so each run researches new firms (set skip_researched = false to re-research).\nconst skipOld = cfg.skip_researched !== false;\nconst seenBefore = {};\n// ...except firms that ended 'Insufficient Information' because their website could not be read - those are retried.\nif (skipOld) $input.all().forEach(function (i) {\n  const j = i.json || {};\n  const retry = j.final_fit === 'Insufficient Information' && !(Number(j.pages_scraped) > 0);\n  if (retry) return;\n  if (j.domain) seenBefore[String(j.domain).toLowerCase()] = true;\n  if (j.company_id) seenBefore[String(j.company_id).toLowerCase()] = true;\n});\nconst places = all.filter(function (r) { return r.kind === 'place'; });\nconst registry = all.filter(function (r) { return r.kind === 'registry'; });\nconst stats = Object.assign({ place_results: places.length, registry_records: registry.length, out_of_scope_state: 0, not_law: 0, no_website: 0, closed: 0, merged_duplicates: 0, over_limit: 0, registry_matched: 0, already_researched: 0 }, (all[0] && all[0]._source_counts) || {});\n\nconst byKey = {}, firms = [];\nplaces.forEach(function (r) {\n  if (states.indexOf(r.state) === -1) { stats.out_of_scope_state++; return; }\n  const types = (r.types || []).join(' | ');\n  if (!LAWY.test(types) && !LAWY.test(r.company_name)) { stats.not_law++; return; }\n  if (/permanently closed/i.test(r.open_state || '')) { stats.closed++; return; }\n  const site = cleanUrl(r.website);\n  if (!site) { stats.no_website++; return; }\n  const dom = host(site), nk = core(r.company_name) + '|' + r.state;\n  if (seenBefore[dom]) { stats.already_researched++; return; }\n  const existing = byKey[dom] || byKey[nk];\n  if (existing) {\n    stats.merged_duplicates++;\n    if (existing.found_by.indexOf(r.source) === -1) existing.found_by.push(r.source);\n    ['phone', 'address', 'city', 'place_id'].forEach(function (f) { if (!existing[f] && r[f]) existing[f] = r[f]; });\n    existing.types = Array.from(new Set(existing.types.concat(r.types || [])));\n    return;\n  }\n  const f = { company_name: r.company_name, website: site, domain: dom, phone: r.phone, address: r.address, city: r.city, state: r.state, place_id: r.place_id,\n    types: (r.types || []).slice(), rating: r.rating, reviews: r.reviews, query: r.query, found_by: [r.source] };\n  byKey[dom] = byKey[nk] = f; firms.push(f);\n});\nfirms.forEach(function (f) {\n  const hay = f.company_name + ' ' + f.types.join(' ');\n  f.prio = (OFF.test(f.types[0] || '') || OFF.test(f.company_name)) ? 2 : DEFENSE.test(hay) ? 0 : 1;\n  if (f.found_by.length > 1) f.prio -= 0.5;   // found by both map sources\n});\nfirms.sort(function (a, b) { return a.prio - b.prio; });\n\nconst perState = {}, out = [];\nfirms.forEach(function (f) {\n  perState[f.state] = (perState[f.state] || 0) + 1;\n  if (perState[f.state] > limit) { stats.over_limit++; return; }\n  const target = core(f.company_name);\n  const regHits = registry.filter(function (g) { const c = core(g.company_name); return target.length > 4 && (c === target || (target.length > 8 && (c.indexOf(target) === 0 || target.indexOf(c) === 0))); });\n  if (regHits.length) stats.registry_matched++;\n  const m = mapsUrl(f.place_id);\n  const sources = [\n    { field: 'company_name', value: f.company_name, source: f.found_by.join(' + '), url: m, status: 'verified', extracted_at: now },\n    { field: 'address', value: f.address || null, source: f.found_by[0], url: m, status: f.address ? 'verified' : 'unknown', extracted_at: now },\n    { field: 'phone', value: f.phone || null, source: f.found_by[0], url: m, status: f.phone ? 'verified' : 'unknown', extracted_at: now },\n    { field: 'website', value: f.website, source: f.found_by[0], url: m, status: 'verified', extracted_at: now },\n  ];\n  regHits.forEach(function (g) {\n    if (g.source === 'Sunbiz Daily') sources.push({ field: 'entity_status', value: g.entity_status + ' - ' + g.company_name + ' (' + g.entity_number + ', filed ' + g.file_date + ')', source: 'Sunbiz Daily (discovery feed)', url: 'https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?inquiryType=DocumentNumber&searchTerm=' + encodeURIComponent(g.entity_number), status: 'verified', extracted_at: now });\n    else sources.push({ field: 'federal_awards', value: g.company_name + ': $' + Math.round(g.award_amount).toLocaleString('en-US') + ' (' + g.agency + ')', source: 'USAspending (discovery feed)', url: g.recipient_id ? 'https://www.usaspending.gov/recipient/' + g.recipient_id + '/latest' : 'https://www.usaspending.gov/search', status: 'verified', extracted_at: now });\n  });\n  const globs = [];\n  [f.domain, 'www.' + f.domain].forEach(function (h) { KW.forEach(function (k) { globs.push({ glob: 'https://' + h + '/*' + k + '*' }, { glob: 'https://' + h + '/*' + k + '*/**' }, { glob: 'https://' + h + '/**/*' + k + '*' }); }); });\n  out.push({ json: {\n    company_name: f.company_name, website: f.website, domain: f.domain, phone: f.phone || '', address: f.address || '', city: f.city || '', state: f.state,\n    place_id: f.place_id || '', maps_uri: m, business_status: 'OPERATIONAL', google_category: f.types.join(' | '), google_rating: f.rating, google_reviews: f.reviews,\n    found_by: f.found_by.join(' + '), registry_matches: regHits.map(function (g) { return g.source + ': ' + g.company_name; }),\n    source_urls: [m || 'https://serpapi.com/search.json'], data_mode: 'LIVE', collected_at: now, discovery_query: f.query, sources: sources, _discovery_stats: stats,\n    scrape_input: { startUrls: [{ url: f.website }], crawlerType: 'cheerio', maxCrawlDepth: 1, maxCrawlPages: maxPages, maxResults: maxPages,\n      includeUrlGlobs: globs, proxyConfiguration: { useApifyProxy: true }, removeCookieWarnings: true, saveMarkdown: false },\n  } });\n});\nreturn out;\n"
+      },
+      "id": "234cab68-b50f-49a7-ab17-17533dafe2ac",
+      "name": "Parse Places Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1840,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/apify~website-content-crawler/run-sync-get-dataset-items?timeout=150&memory=1024",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.scrape_input) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 4000
+            }
+          },
+          "timeout": 200000
+        }
+      },
+      "id": "3044ab2e-dc4f-4bfd-aa64-dd4a667dc8fd",
+      "name": "Apify Website Scraper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2064,
+        416
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wA5Pu7vAf2ttzhEC",
+          "name": "Apify-API-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine the pages Apify scraped for each firm into one evidence text block (with page URLs so the AI can cite them).\nconst cands = $('Parse Places Results').all().map(function (i) { return i.json; });\nconst now = new Date().toISOString();\nconst PER_PAGE = 3500, TOTAL = 14000;\nconst PRI = [/practice|service|industr/i, /attorney|lawyer|people|professional|team/i, /about|history|firm/i, /office|location/i];\nfunction host(u) { return String(u || '').toLowerCase().trim().replace(/^[a-z]+:[/][/]/, '').replace(/^www[.]/, '').split('/')[0].split('?')[0].split(':')[0]; }\nfunction rank(u, home) { if (host(u) === host(home) && /^https?:[/][/][^/]+[/]?$/.test(u)) return -1; for (let i = 0; i < PRI.length; i++) if (PRI[i].test(u)) return i; return 9; }\nconst byDom = {};\ncands.forEach(function (c, i) { if (c.domain) byDom[c.domain] = i; });\nconst pages = cands.map(function () { return []; });\nlet scrapeErrors = 0;\n$input.all().forEach(function (it) {\n  const j = it.json || {};\n  if (!j.url || j.error) { scrapeErrors++; return; }\n  let idx = byDom[host(j.url)];\n  if (idx === undefined) { const lu = host((j.crawl && j.crawl.loadedUrl) || j.loadedUrl || ''); idx = byDom[lu]; }\n  if (idx === undefined && it.pairedItem && typeof it.pairedItem.item === 'number') idx = it.pairedItem.item;\n  if (idx === undefined || !pages[idx]) return;\n  const text = String(j.text || j.markdown || '').replace(/[ \\t]+/g, ' ').replace(/\\n{3,}/g, '\\n\\n').trim();\n  if (text) pages[idx].push({ url: j.url, title: (j.metadata && j.metadata.title) || '', text: text });\n});\nreturn cands.map(function (c, i) {\n  const ps = pages[i].sort(function (a, b) { return rank(a.url, c.website) - rank(b.url, c.website); });\n  let combined = '';\n  const used = [];\n  ps.forEach(function (p) {\n    if (combined.length >= TOTAL) return;\n    const chunk = '\\n\\n=== PAGE: ' + p.url + (p.title ? ' (' + p.title + ')' : '') + ' ===\\n' + p.text.slice(0, PER_PAGE);\n    combined += chunk.slice(0, TOTAL - combined.length);\n    used.push(p.url);\n  });\n  const sources = (c.sources || []).slice();\n  used.forEach(function (u) { sources.push({ field: 'website_page', value: '(page text scraped by Apify Website Content Crawler)', source: 'Firm website via Apify', url: u, status: 'verified', extracted_at: now }); });\n  const rec = Object.assign({}, c, { website_text: combined.trim(), pages_scraped: used.length, scraped_page_urls: used,\n    source_urls: Array.from(new Set((c.source_urls || []).concat(used))), sources: sources });\n  delete rec.scrape_input;\n  if (!used.length) rec.scrape_note = 'Website could not be scraped (blocked, timed out, or empty) - research agent may retry';\n  return { json: rec };\n});\n"
+      },
+      "id": "d15711ce-e418-4ac2-86d5-eeeaf4cded3b",
+      "name": "Extract Website Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2288,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=COMPANY RECORD (JSON):\n{{ JSON.stringify({ company_name: $json.company_name, state: $json.state, website: $json.website, address: $json.address, phone: $json.phone, data_mode: $json.data_mode, source_urls: $json.source_urls }) }}\n\nWEBSITE / SOURCE TEXT (the only evidence you may use):\n{{ $json.website_text || \"(no website text could be retrieved)\" }}",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are an M&A research analyst screening privately held law firms for TrueGrit/VIMANA, a prospective acquirer. Target profile: established B2B law firms in Florida or Georgia specializing in insurance defense, insurance coverage litigation, insurance claims defense, commercial litigation involving insurers, workers' compensation defense, general liability defense, and professional liability defense. NOT targets: personal injury plaintiff, criminal defense, family law, or M&A advisory firms.\n\nSTRICT EVIDENCE RULES\n- Use ONLY the company record and website text provided. Never use outside knowledge to fill gaps and never invent facts.\n- If a fact is not stated in the evidence, use the string \"Unknown\" (for facts) and list it in missing_information. Missing revenue/financials is NOT a reason to reject a firm.\n- For every extracted fact give a field_evidence entry: status \"verified\" only when the evidence text states it directly (quote it in evidence_quote, with the source_url it came from); \"estimated\" when it is a reasoned inference (explain in evidence_quote); \"unknown\" otherwise (empty quote).\n- Do not infer ownership intent, willingness to sell, or financial performance from age or other personal characteristics. Never state or imply a firm is for sale.\n- If data_mode is SAMPLE_DEMO the text is fictional illustrative data; classify it normally but keep the evidence rules.\n\nCLASSIFICATION\n- insurance_defense_fit: Strong (insurance/claims defense or coverage work is a core practice), Partial (some relevant work), None (clearly plaintiff-side/other), Unknown (insufficient evidence).\n- b2b_focus: Primarily B2B/Insurers, Mixed, Primarily Consumer, or Unknown.\n- target_classification: High Fit, Moderate Fit, Low Fit, or Insufficient Information (when evidence is too thin to judge).\n- practice_areas: list the legal practice categories evidenced in the text.\n- confidence_score: 0 to 1, reflecting how strongly the evidence supports your classification.\n- extracted_facts.year_founded / attorney_count / employee_count: digits only (e.g. \"1994\", \"45\") or \"Unknown\". revenue: as stated, or \"Unknown\". organization_type: e.g. LLP, PC, PA, or \"Unknown\".\n- defense_vs_plaintiff: Defense, Plaintiff, Both, or Unknown (which side the firm predominantly represents; most firms lean ~95/5 one way).\n- civil_vs_criminal: Civil, Criminal, Both, or Unknown.\n- carrier_relationships: insurance carriers the website explicitly names as clients or panel relationships (e.g. AIG, Travelers, Lloyd's). Empty list if none are named - never guess.\n- extracted_facts.office_count: number of offices stated or listed (digits) or \"Unknown\".\n- The website text may contain several pages, each starting with '=== PAGE: <url> ==='. Cite the specific page URL in field_evidence.source_url.\n- source_urls: only URLs from the record or the PAGE headers.\nReturn ONLY JSON that matches the required schema."
+            }
+          ]
+        },
+        "batching": {
+          "batchSize": "={{ $(\"Run Configuration\").first().json.ai_batch_size }}",
+          "delayBetweenBatches": 1000
+        }
+      },
+      "id": "bb957634-9466-4e5e-a43f-2f05ed182c2c",
+      "name": "AI Classify Firm",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        2832,
+        224
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {
+          "timeout": 90000,
+          "maxRetries": 2
+        }
+      },
+      "id": "36bcb84e-7b61-4404-9e14-32f5150b4f6c",
+      "name": "OpenAI Classification Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        2816,
+        512
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "334lZgf9HgL2DqjR",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "company_name": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string"
+            },
+            "insurance_defense_fit": {
+              "type": "string",
+              "enum": [
+                "Strong",
+                "Partial",
+                "None",
+                "Unknown"
+              ]
+            },
+            "b2b_focus": {
+              "type": "string",
+              "enum": [
+                "Primarily B2B/Insurers",
+                "Mixed",
+                "Primarily Consumer",
+                "Unknown"
+              ]
+            },
+            "practice_areas": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "target_classification": {
+              "type": "string",
+              "enum": [
+                "High Fit",
+                "Moderate Fit",
+                "Low Fit",
+                "Insufficient Information"
+              ]
+            },
+            "reason": {
+              "type": "string"
+            },
+            "potential_opportunity": {
+              "type": "string"
+            },
+            "potential_risks": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "confidence_score": {
+              "type": "number"
+            },
+            "missing_information": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "source_urls": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "extracted_facts": {
+              "type": "object",
+              "properties": {
+                "year_founded": {
+                  "type": "string"
+                },
+                "attorney_count": {
+                  "type": "string"
+                },
+                "employee_count": {
+                  "type": "string"
+                },
+                "revenue": {
+                  "type": "string"
+                },
+                "organization_type": {
+                  "type": "string"
+                },
+                "offices": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "leadership": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "hiring_expansion_signals": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "description": {
+                  "type": "string"
+                },
+                "office_count": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "year_founded",
+                "attorney_count",
+                "employee_count",
+                "revenue",
+                "organization_type",
+                "offices",
+                "leadership",
+                "hiring_expansion_signals",
+                "description",
+                "office_count"
+              ]
+            },
+            "field_evidence": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "field": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "verified",
+                      "estimated",
+                      "unknown"
+                    ]
+                  },
+                  "source_url": {
+                    "type": "string"
+                  },
+                  "evidence_quote": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "field",
+                  "value",
+                  "status",
+                  "source_url",
+                  "evidence_quote"
+                ]
+              }
+            },
+            "carrier_relationships": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "civil_vs_criminal": {
+              "enum": [
+                "Civil",
+                "Criminal",
+                "Both",
+                "Unknown"
+              ],
+              "type": "string"
+            },
+            "defense_vs_plaintiff": {
+              "enum": [
+                "Defense",
+                "Plaintiff",
+                "Both",
+                "Unknown"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "company_name",
+            "state",
+            "insurance_defense_fit",
+            "b2b_focus",
+            "practice_areas",
+            "target_classification",
+            "reason",
+            "potential_opportunity",
+            "potential_risks",
+            "confidence_score",
+            "missing_information",
+            "source_urls",
+            "extracted_facts",
+            "field_evidence",
+            "defense_vs_plaintiff",
+            "civil_vs_criminal",
+            "carrier_relationships"
+          ]
+        },
+        "autoFix": true
+      },
+      "id": "bfd9942c-e155-4ffe-b1b5-a9db3cd58f51",
+      "name": "Classification JSON Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        3008,
+        512
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const bases = $('Clean and Deduplicate').all();\nconst now = new Date().toISOString();\nconst year = new Date().getFullYear();\nfunction num(s) {\n  if (s === null || s === undefined) return null;\n  const m = String(s).match(/[0-9][0-9,]*/);\n  if (!m) return null;\n  const n = parseInt(m[0].split(',').join(''), 10);\n  return isNaN(n) ? null : n;\n}\nfunction yr(s) {\n  const m = String(s || '').match(/(1[89][0-9]{2}|20[0-9]{2})/);\n  const y = m ? parseInt(m[1], 10) : null;\n  return (y && y <= year) ? y : null;\n}\nfunction known(v) { return v !== null && v !== undefined && String(v).trim() !== '' && String(v).toLowerCase() !== 'unknown'; }\nfunction mergeOne(base, row) {\nconst ai = row.output;\nconst isLive = base.data_mode === 'LIVE';\nconst rec = Object.assign({}, base);\nif (!ai || typeof ai !== 'object') {\n  Object.assign(rec, {\n    classification_error: true, classification_error_detail: String(row.error || 'AI classification returned no valid structured output'),\n    insurance_defense_fit: 'Unknown', b2b_focus: 'Unknown', practice_areas: [], target_classification: 'Insufficient Information',\n    reason: 'AI classification failed; no judgment made.', potential_opportunity: '', potential_risks: [], confidence_score: 0,\n    missing_information: ['AI classification failed - rerun'], ai_source_urls: base.source_urls || [],\n    year_founded: null, years_in_operation: null, attorney_count: null, employee_count: null, revenue: null, revenue_status: 'unknown',\n    organization_type: null, offices: [], leadership: [], hiring_signals: [], description: '', provenance: base.sources || [], enrichment: null, enrichment_status: 'not_applicable',\n  });\n  return { json: rec };\n}\nconst f = ai.extracted_facts || {};\nconst evid = Array.isArray(ai.field_evidence) ? ai.field_evidence : [];\nconst prov = (base.sources || []).slice();\nevid.forEach(function (e) {\n  let status = e.status;\n  if (!isLive) status = known(e.value) ? 'sample_demo' : 'unknown';\n  else if (status === 'verified' && !(e.source_url && e.evidence_quote)) status = 'estimated';\n  prov.push({ field: e.field, value: e.value, source: 'AI extraction from retrieved text', url: e.source_url || '', evidence_quote: e.evidence_quote || '', status: status, extracted_at: now });\n});\nconst yf = yr(f.year_founded);\nconst revenue = known(f.revenue) ? String(f.revenue) : null;\nconst revEv = evid.filter(function (e) { return e.field === 'revenue'; })[0];\nObject.assign(rec, {\n  classification_error: false,\n  insurance_defense_fit: ai.insurance_defense_fit, b2b_focus: ai.b2b_focus, practice_areas: ai.practice_areas || [],\n  target_classification: ai.target_classification, reason: ai.reason, potential_opportunity: ai.potential_opportunity,\n  potential_risks: ai.potential_risks || [], confidence_score: Math.max(0, Math.min(1, Number(ai.confidence_score) || 0)),\n  missing_information: ai.missing_information || [], ai_source_urls: ai.source_urls || base.source_urls || [],\n  year_founded: yf, years_in_operation: yf ? year - yf : null,\n  attorney_count: num(f.attorney_count), employee_count: num(f.employee_count),\n  revenue: revenue, revenue_status: revenue ? (!isLive ? 'sample_demo' : (revEv && revEv.status === 'verified' ? 'verified' : 'estimated')) : 'unknown',\n  organization_type: known(f.organization_type) ? f.organization_type : null,\n  offices: f.offices || [], leadership: f.leadership || [], hiring_signals: f.hiring_expansion_signals || [], description: f.description || '',\n  defense_vs_plaintiff: ai.defense_vs_plaintiff || 'Unknown', civil_vs_criminal: ai.civil_vs_criminal || 'Unknown', carrier_relationships: ai.carrier_relationships || [], office_count: num(f.office_count),\n  provenance: prov, enrichment: null, enrichment_status: 'not_applicable',\n});\nreturn { json: rec };\n}\nreturn $input.all().map(function (it, idx) { return mergeOne(bases[idx].json, it.json); });"
+      },
+      "id": "62370bc0-e154-4330-8a51-38873ae233d3",
+      "name": "Merge Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3216,
+        288
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "f1",
+              "leftValue": "={{ $json.target_classification }}",
+              "rightValue": "High Fit",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "f2",
+              "leftValue": "={{ $json.target_classification }}",
+              "rightValue": "Moderate Fit",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "id": "a323240b-0419-430d-bb21-4f3b7f4f0c67",
+      "name": "High or Moderate Fit?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4048,
+        752
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Research this law firm using only public, source-backed information.\n\nCURRENT RECORD:\n{{ JSON.stringify({ company_name: $json.company_name, state: $json.state, website: $json.website, data_mode: $json.data_mode, practice_areas: $json.practice_areas, offices: $json.offices, leadership: $json.leadership, year_founded: $json.year_founded, attorney_count: $json.attorney_count, missing_information: $json.missing_information, classification_reason: $json.reason }) }}\n\nEVIDENCE ALREADY COLLECTED (website text):\n{{ $json.website_text || \"(none)\" }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a research analyst gathering acquisition-relevant facts about ONE privately held law firm for TrueGrit/VIMANA. Research areas: firm history and expansion; office locations; recruiting activity; publicly named leadership; employee growth indicators; business registrations; publicly documented strategic changes; additional information about firm size and revenue.\n\nTOOL\n- fetch_public_page: fetch a public page. Use it ONLY for pages on the firm's own website (about, attorneys, careers, news) or official public registry pages, at most 4 calls. If data_mode is SAMPLE_DEMO, the firm is fictional: do NOT call any tool and work only from the evidence in the prompt.\n\nRULES\n- Every claim must come from evidence you actually read. Put each acquisition-relevant signal in evidence_backed_signals with its source_url and a verbatim evidence_quote. A signal without a source and quote must not be listed.\n- If something cannot be found, write \"Unknown\" and add it to unresolved_questions. Never invent revenue, EBITDA, employee growth, ownership intentions, or financial performance. If revenue is not found, revenue_status = \"unknown\".\n- Do NOT infer willingness to sell from age, tenure, or any personal characteristic. Only report publicly documented facts (for example an announced leadership transition).\n- Never say or imply the firm is for sale. Do not draft outreach.\nReturn ONLY JSON matching the schema.",
+          "maxIterations": 6,
+          "batching": {
+            "batchSize": 1,
+            "delayBetweenBatches": 2000
+          }
+        }
+      },
+      "id": "785cc37b-08e5-4923-afca-1e7179202867",
+      "name": "Research Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        3888,
+        48
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {
+          "timeout": 120000,
+          "maxRetries": 2
+        }
+      },
+      "id": "e5b028ea-98fb-48e9-b530-6c2de4e10f11",
+      "name": "OpenAI Research Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3824,
+        272
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "334lZgf9HgL2DqjR",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('url', \"Full URL of a public page on the firm's own website (e.g. about, attorneys, careers, news) or an official public business-registry page\") }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "TrueGritAcquisitionResearch/0.1 (academic capstone; public pages only)"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          },
+          "timeout": 15000
+        },
+        "optimizeResponse": true,
+        "responseType": "html",
+        "onlyContent": true,
+        "truncateResponse": true,
+        "maxLength": 6000
+      },
+      "id": "24cfd72e-d48d-4250-8770-628dea37c0b3",
+      "name": "fetch_public_page",
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        3952,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "history_and_expansion": {
+              "type": "string"
+            },
+            "office_locations": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "recruiting_activity": {
+              "type": "string"
+            },
+            "leadership": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "employee_growth_indicators": {
+              "type": "string"
+            },
+            "business_registrations": {
+              "type": "string"
+            },
+            "strategic_changes": {
+              "type": "string"
+            },
+            "size_and_revenue_notes": {
+              "type": "string"
+            },
+            "revenue_status": {
+              "type": "string",
+              "enum": [
+                "verified",
+                "estimated",
+                "unknown"
+              ]
+            },
+            "evidence_backed_signals": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "signal": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "succession",
+                      "expansion",
+                      "leadership_change",
+                      "hiring",
+                      "strategic_change",
+                      "other"
+                    ]
+                  },
+                  "source_url": {
+                    "type": "string"
+                  },
+                  "evidence_quote": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "signal",
+                  "type",
+                  "source_url",
+                  "evidence_quote"
+                ]
+              }
+            },
+            "unresolved_questions": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "sources_consulted": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "required": [
+            "history_and_expansion",
+            "office_locations",
+            "recruiting_activity",
+            "leadership",
+            "employee_growth_indicators",
+            "business_registrations",
+            "strategic_changes",
+            "size_and_revenue_notes",
+            "revenue_status",
+            "evidence_backed_signals",
+            "unresolved_questions",
+            "sources_consulted"
+          ]
+        },
+        "autoFix": true
+      },
+      "id": "4b827128-f3b3-49b9-8888-e220a1bf0ad6",
+      "name": "Research JSON Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        4080,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const bases = $('High or Moderate Fit?').all(0);\nconst now = new Date().toISOString();\nfunction mergeOne(base, row) {\nconst e = row.output;\nconst rec = Object.assign({}, base);\nif (!e || typeof e !== 'object') {\n  rec.enrichment = null;\n  rec.enrichment_status = 'failed';\n  rec.missing_information = (base.missing_information || []).concat(['Research agent failed - rerun enrichment']);\n  return { json: rec };\n}\nconst isLive = base.data_mode === 'LIVE';\nconst prov = (base.provenance || []).slice();\n(e.evidence_backed_signals || []).forEach(function (s) {\n  prov.push({ field: 'signal:' + s.type, value: s.signal, source: 'Research Agent', url: s.source_url || '', evidence_quote: s.evidence_quote || '',\n              status: isLive ? ((s.source_url && s.evidence_quote) ? 'verified' : 'estimated') : 'sample_demo', extracted_at: now });\n});\nfunction known(v) { return v && String(v).toLowerCase() !== 'unknown'; }\nrec.provenance = prov;\nrec.enrichment = e;\nrec.enrichment_status = 'completed';\nif (e.office_locations && e.office_locations.length) rec.offices = Array.from(new Set((rec.offices || []).concat(e.office_locations)));\nif (e.leadership && e.leadership.length) rec.leadership = Array.from(new Set((rec.leadership || []).concat(e.leadership)));\nif (!rec.revenue && known(e.size_and_revenue_notes) && e.revenue_status !== 'unknown') {\n  rec.revenue = e.size_and_revenue_notes;\n  rec.revenue_status = isLive ? e.revenue_status : 'sample_demo';\n}\nrec.ai_source_urls = Array.from(new Set((rec.ai_source_urls || []).concat(e.sources_consulted || [])));\nreturn { json: rec };\n}\nreturn $input.all().map(function (it, idx) { return mergeOne(bases[idx].json, it.json); });"
+      },
+      "id": "3a20ecfb-638a-41bd-88c1-cf7daa1fbca1",
+      "name": "Merge Enrichment",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4288,
+        48
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "72a3c89b-1029-49bf-88a7-e1db01dcdc51",
+      "name": "Combine Researched and Screened-Out Firms",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4608,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const cfg = $('Run Configuration').first().json;\nconst W = cfg.weights, T = cfg.thresholds;\nconst r = $json;\nconst ent = r.enrichment || {};\nconst comps = [];\nfunction round1(x) { return Math.round(x * 10) / 10; }\nfunction add(key, label, max, pts, note) { comps.push({ key: key, label: label, max: max, points: pts === null ? null : round1(pts), scored: pts !== null, note: note }); }\n\n// 1. Insurance-defense practice fit (AI, evidence-grounded)\nconst idf = r.insurance_defense_fit;\nconst aiF = idf === 'Strong' ? 1 : idf === 'Partial' ? 0.5 : idf === 'None' ? 0 : null;\nconst SB = cfg.scorecard_bands || { strong: 15, moderate: 5 };\nconst sc = r.insurance_score;\nconst scF = (sc === null || sc === undefined) ? null : sc >= SB.strong ? 1 : sc >= SB.moderate ? 0.6 : sc >= 0 ? 0.2 : 0;\nconst insF = aiF === null ? scF : scF === null ? aiF : (aiF + scF) / 2;\nadd('insurance_defense', 'Insurance-defense practice fit', W.insurance_defense, insF === null ? null : W.insurance_defense * insF,\n  'AI assessment: ' + idf + '; keyword scorecard: ' + (sc === null || sc === undefined ? 'n/a' : sc + ' (' + r.insurance_band + ')'));\n// 2. Geography\nconst geo = (r.state === 'FL' || r.state === 'GA');\nadd('geography', 'Florida/Georgia geographic fit', W.geography, geo ? W.geography : 0, 'State: ' + r.state);\n// 3. B2B focus\nconst b = r.b2b_focus;\nadd('b2b', 'B2B client focus', W.b2b, b === 'Primarily B2B/Insurers' ? W.b2b : b === 'Mixed' ? W.b2b * 0.5 : b === 'Primarily Consumer' ? 0 : null, 'AI assessment: ' + b);\n// 4. Size (attorney count; revenue is not required)\nconst att = r.attorney_count;\nlet szf = null;\nconst SZ = cfg.size_band_attorneys || { min: 10, max: 400 };\nif (att !== null && att !== undefined) szf = (att >= SZ.min && att <= SZ.max) ? 1 : (att >= 5 && att < SZ.min) ? 0.5 : att > SZ.max ? 0.4 : 0.2;\nadd('size', 'Firm size and revenue suitability', W.size, szf === null ? null : W.size * szf, att === null || att === undefined ? 'Attorney count unknown' : 'Attorneys: ' + att);\n// 5. Operating history\nconst yrs = r.years_in_operation;\nadd('history', 'Operating history', W.history, (yrs === null || yrs === undefined) ? null : W.history * (yrs >= 10 ? 1 : yrs >= 5 ? 0.5 : 0.2),\n  (yrs === null || yrs === undefined) ? 'Year founded unknown' : 'Years in operation: ' + yrs);\n// 6. Evidence-backed strategic / succession signals (only signals that carry a source URL and a quote)\nconst sigs = (ent.evidence_backed_signals || []).filter(function (s) { return s && s.source_url && s.evidence_quote; });\nadd('strategic', 'Evidence-backed strategic or succession signals', W.strategic, sigs.length >= 2 ? W.strategic : sigs.length === 1 ? W.strategic * 0.5 : null,\n  sigs.length ? sigs.length + ' sourced signal(s)' : 'No sourced signals found (not treated as negative)');\n// 7. Data completeness and reliability\nconst checks = [r.website, r.phone, r.address, r.year_founded, r.attorney_count, r.employee_count, r.revenue,\n  (r.leadership || []).length, (r.offices || []).length, (r.practice_areas || []).length, r.organization_type];\nconst have = checks.filter(function (v) { return v !== null && v !== undefined && v !== '' && v !== 0; }).length;\nconst share = have / checks.length;\nadd('completeness', 'Data completeness and reliability', W.completeness, W.completeness * share * (r.data_mode === 'LIVE' ? 1 : 0.5), have + ' of ' + checks.length + ' key fields known');\n\nconst totalPossible = comps.reduce(function (s, c) { return s + c.max; }, 0);\nconst scored = comps.filter(function (c) { return c.scored; });\nconst observed = round1(scored.reduce(function (s, c) { return s + c.points; }, 0));\nconst maxSupported = round1(scored.reduce(function (s, c) { return s + c.max; }, 0));\nconst coveragePct = Math.round(maxSupported / totalPossible * 100);\nconst normalized = maxSupported > 0 ? Math.round(observed / maxSupported * 100) : null;\n\n// Classification with hard gates\nconst risks = [];\nlet fit;\nif (r.classification_error) { fit = 'Insufficient Information'; risks.push('AI classification failed'); }\nelse if (r.defense_vs_plaintiff === 'Plaintiff') { fit = 'Low Fit'; risks.push('Disqualifying: predominantly plaintiff-side per website evidence (sponsor criterion: defense, not plaintiff)'); }\nelse if (r.civil_vs_criminal === 'Criminal') { fit = 'Low Fit'; risks.push('Disqualifying: predominantly criminal practice (sponsor criterion: civil, not criminal)'); }\nelse if (idf === 'None' || r.target_classification === 'Low Fit') { fit = 'Low Fit'; risks.push('Disqualifying: not an insurance-defense / B2B practice per evidence'); }\nelse if (coveragePct < T.min_coverage || normalized === null) { fit = 'Insufficient Information'; }\nelse if (normalized >= T.high) fit = 'High Fit';\nelse if (normalized >= T.moderate) fit = 'Moderate Fit';\nelse fit = 'Low Fit';\n\nconst conf = r.confidence_score || 0;\nconst dataConfidence = (r.data_mode !== 'LIVE') ? 'Low (sample/demo data - not verified)' : (coveragePct >= 75 && conf >= 0.7) ? 'High' : (coveragePct >= 50 && conf >= 0.5) ? 'Medium' : 'Low';\n\nconst positives = [];\nscored.forEach(function (c) { if (c.points >= c.max * 0.75 && c.max > 0) positives.push(c.label + ' (' + c.points + '/' + c.max + '): ' + c.note); });\nsigs.forEach(function (s) { positives.push('Signal (' + s.type + '): ' + s.signal + ' [' + s.source_url + ']'); });\n(r.potential_risks || []).forEach(function (x) { risks.push(x); });\nif (r.enrichment_status === 'failed') risks.push('Enrichment step failed');\n\nconst unscored = comps.filter(function (c) { return !c.scored; }).map(function (c) { return 'Unscored: ' + c.label; });\nconst missing = Array.from(new Set((r.missing_information || []).concat(unscored)));\nif (!r.revenue) missing.push('Revenue (unknown - attorney count needed for estimate)');\n\nlet next;\nif (fit === 'Insufficient Information') next = 'Collect more evidence (' + (missing.slice(0, 3).join('; ') || 'website and registry data') + ') and rerun classification.';\nelse if (fit === 'Low Fit') next = 'Deprioritize; archive unless a human reviewer sees a reason to revisit.';\nelse next = 'Human reviewer: verify practice mix and firm size from primary sources, confirm leadership/ownership structure via public registries, and research revenue range from credible sources. Do not contact the firm until TrueGrit/VIMANA approves.';\n\nconst explanation = 'Observed ' + observed + ' of ' + maxSupported + ' scoreable points (evidence coverage ' + coveragePct + '% of the 100-point model; normalized ' + (normalized === null ? 'n/a' : normalized + '/100') + '). ' +\n  comps.map(function (c) { return c.label + ': ' + (c.scored ? c.points + '/' + c.max : 'unscored (' + c.note + ')'); }).join(' | ') + '. Weights are provisional pending sponsor confirmation.';\n\nconst out = Object.assign({}, r, {\n  acquisition_score: observed, max_supported_points: maxSupported, evidence_coverage_pct: coveragePct, normalized_score: normalized,\n  final_fit: fit, data_confidence: dataConfidence, score_breakdown: comps, positive_indicators: positives, risk_factors: risks,\n  all_missing_information: missing, score_explanation: explanation, recommended_next_action: next,\n  review_required: (fit === 'High Fit' || fit === 'Moderate Fit'),\n  run_id: String($execution.id), scored_at: new Date().toISOString(),\n});\nreturn { json: out };"
+      },
+      "id": "624ff874-c546-4cd5-8d53-41011d09e0b4",
+      "name": "Acquisition Fit Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4832,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $json;\nfunction j(a) { return Array.isArray(a) ? a.join('; ') : (a || ''); }\nfunction v(x) { return (x === null || x === undefined || x === '') ? 'Unknown' : x; }\nreturn { json: {\n  company_id: r.company_id, company_name: r.company_name, state: r.state, city: r.city || '', address: r.address || '', website: r.website || '', domain: r.domain || '',\n  phone: r.phone || '', organization_type: v(r.organization_type), practice_areas: j(r.practice_areas), description: r.description || '',\n  year_founded: v(r.year_founded), years_in_operation: v(r.years_in_operation), attorney_count: v(r.attorney_count), employee_count: v(r.employee_count),\n  revenue: v(r.revenue), revenue_status: r.revenue_status, revenue_estimate: v(r.revenue_estimate), in_size_band: r.in_size_band === null || r.in_size_band === undefined ? 'Unknown' : (r.in_size_band ? 'Yes' : 'No'),\n  office_count: v(r.office_count), leadership: j(r.leadership), offices: j(r.offices), hiring_signals: j(r.hiring_signals),\n  defense_vs_plaintiff: v(r.defense_vs_plaintiff), civil_vs_criminal: v(r.civil_vs_criminal), carrier_relationships: j(r.carrier_relationships),\n  insurance_score: r.insurance_score === null || r.insurance_score === undefined ? 'n/a' : r.insurance_score, insurance_band: r.insurance_band || '', insurance_terms_matched: j(r.insurance_terms_matched),\n  entity_status: v(r.entity_status), entity_status_label: r.entity_status_label || '', entity_name: r.entity_name || '', entity_file_date: r.entity_file_date || '', entity_source_url: r.entity_source_url || '',\n  federal_awards_count: r.federal_awards_count || 0, federal_awards_total: r.federal_awards_total || 0,\n  google_category: r.google_category || '', google_rating: r.google_rating || '', pages_scraped: r.pages_scraped || 0,\n  final_fit: r.final_fit, normalized_score: r.normalized_score === null ? 'n/a' : r.normalized_score, review_status: r.review_required ? 'Needs review' : (r.final_fit === 'Low Fit' ? 'Screened out' : 'Needs more evidence'),\n  data_mode: r.data_mode, source_urls: j(r.source_urls), last_collected_at: r.collected_at, last_run_id: r.run_id,\n} };\n"
+      },
+      "id": "553c43d5-7986-4df0-af24-0e19f98c610a",
+      "name": "Shape Company_Leads Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5056,
+        224
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Run Configuration\").first().json.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Company_Leads"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "company_id"
+          ],
+          "schema": [
+            {
+              "id": "company_id",
+              "displayName": "company_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn"
+        }
+      },
+      "id": "a4a31127-60b6-46ed-9dc6-7c22c7e2e121",
+      "name": "Save to Company_Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5344,
+        224
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YlMgclAPtGgkpKaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const r = $json;\nfunction j(a) { return Array.isArray(a) ? a.join('; ') : (a || ''); }\nreturn { json: {\n  company_id: r.company_id, company_name: r.company_name, state: r.state,\n  final_fit: r.final_fit, acquisition_score: r.acquisition_score, max_supported_points: r.max_supported_points, evidence_coverage_pct: r.evidence_coverage_pct,\n  normalized_score: r.normalized_score === null ? 'n/a' : r.normalized_score, data_confidence: r.data_confidence,\n  ai_target_classification: r.target_classification, ai_confidence: r.confidence_score, insurance_defense_fit: r.insurance_defense_fit, b2b_focus: r.b2b_focus,\n  defense_vs_plaintiff: r.defense_vs_plaintiff || 'Unknown', civil_vs_criminal: r.civil_vs_criminal || 'Unknown',\n  insurance_score: r.insurance_score === null || r.insurance_score === undefined ? 'n/a' : r.insurance_score, insurance_band: r.insurance_band || '', insurance_terms_matched: j(r.insurance_terms_matched),\n  practice_areas: j(r.practice_areas), ai_reason: r.reason, potential_opportunity: r.potential_opportunity,\n  positive_indicators: j(r.positive_indicators), risk_factors: j(r.risk_factors), missing_information: j(r.all_missing_information),\n  score_explanation: r.score_explanation, recommended_next_action: r.recommended_next_action, score_breakdown_json: JSON.stringify(r.score_breakdown),\n  enrichment_status: r.enrichment_status, data_mode: r.data_mode, analyzed_at: r.scored_at, run_id: r.run_id,\n} };\n"
+      },
+      "id": "4c15a0c4-758e-41ab-b688-3f83df08042f",
+      "name": "Shape AI_Analysis Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5056,
+        416
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Run Configuration\").first().json.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "AI_Analysis"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "company_id"
+          ],
+          "schema": [
+            {
+              "id": "company_id",
+              "displayName": "company_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn"
+        }
+      },
+      "id": "c936e1df-0323-45f6-b624-76981b644cce",
+      "name": "Save to AI_Analysis",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5344,
+        416
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YlMgclAPtGgkpKaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// One row per (company, field, source) so every important field keeps its provenance, extraction date and verified/estimated/unknown status.\nconst rows = [];\n$input.all().forEach(function (it) {\n  const r = it.json;\n  (r.provenance || []).forEach(function (p, i) {\n    rows.push({ json: {\n      log_key: r.company_id + '|' + p.field + '|' + (p.url || '') + '|' + i,\n      company_id: r.company_id, company_name: r.company_name, field: p.field,\n      value: (p.value === null || p.value === undefined) ? 'Unknown' : String(p.value).slice(0, 500),\n      status: p.status, source: p.source || '', source_url: p.url || '', evidence_quote: (p.evidence_quote || '').slice(0, 500),\n      extracted_at: p.extracted_at, data_mode: r.data_mode, run_id: r.run_id,\n    } });\n  });\n});\nreturn rows;"
+      },
+      "id": "17650b4e-fd19-4c2c-bfde-fcb032f13d77",
+      "name": "Shape Source_Log Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5056,
+        608
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Run Configuration\").first().json.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Source_Log"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "log_key"
+          ],
+          "schema": [
+            {
+              "id": "log_key",
+              "displayName": "log_key",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn"
+        }
+      },
+      "id": "4dbcad8d-7438-4bcf-bcd7-fce01b1805c2",
+      "name": "Save to Source_Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5344,
+        608
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YlMgclAPtGgkpKaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Stage 9 human gate: only High/Moderate Fit firms are queued. Reviewer columns (reviewer_decision, reviewer_notes, reviewed_by)\n// are intentionally NOT written here so reruns never overwrite a human decision. Blank decision = pending.\nfunction j(a) { return Array.isArray(a) ? a.join('; ') : (a || ''); }\nreturn $input.all().filter(function (it) { return it.json.review_required; }).map(function (it) {\n  const r = it.json;\n  return { json: {\n    company_id: r.company_id, company_name: r.company_name, state: r.state, website: r.website || '', final_fit: r.final_fit, acquisition_score: r.acquisition_score,\n    evidence_coverage_pct: r.evidence_coverage_pct, data_confidence: r.data_confidence, why_queued: r.reason,\n    verification_needed: j(r.all_missing_information), recommended_next_action: r.recommended_next_action,\n    queue_note: 'Research candidate only - awaiting human review. NOT approved for outreach. Not indicated as for sale.',\n    data_mode: r.data_mode, queued_at: r.scored_at, run_id: r.run_id,\n  } };\n});"
+      },
+      "id": "d2001bb5-1f40-4aac-9dec-df44ccdb5ca0",
+      "name": "Shape Review_Queue Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5056,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Run Configuration\").first().json.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Review_Queue"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "company_id"
+          ],
+          "schema": [
+            {
+              "id": "company_id",
+              "displayName": "company_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn"
+        }
+      },
+      "id": "c9c780e0-8319-4fd4-a400-ca4024723e8e",
+      "name": "Save to Review_Queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5344,
+        800
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YlMgclAPtGgkpKaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all().map(function (i) { return i.json; });\nconst stats = (items[0] && items[0]._stats) || {};\nconst ds = (items[0] && items[0]._discovery_stats) || {};\nconst count = function (fn) { return items.filter(fn).length; };\nconst ranked = items.slice().sort(function (a, b) { return (b.normalized_score === null ? -1 : b.normalized_score) - (a.normalized_score === null ? -1 : a.normalized_score); });\nconst missingFreq = {};\nitems.forEach(function (r) { (r.all_missing_information || []).forEach(function (m) { missingFreq[m] = (missingFreq[m] || 0) + 1; }); });\nconst top = ranked.filter(function (r) { return r.final_fit === 'High Fit' || r.final_fit === 'Moderate Fit'; }).slice(0, 10);\nconst row = function (r) { return { company: r.company_name, state: r.state, city: r.city, practice_areas: r.practice_areas, attorneys: r.attorney_count, years_in_operation: r.years_in_operation,\n  final_fit: r.final_fit, score_observed: r.acquisition_score, max_supported: r.max_supported_points, evidence_coverage_pct: r.evidence_coverage_pct, normalized_score: r.normalized_score,\n  data_confidence: r.data_confidence, next_action: r.recommended_next_action, sources: r.ai_source_urls, data_mode: r.data_mode }; };\nconst dash = {\n  run_id: String($execution.id), generated_at: new Date().toISOString(),\n  run_mode: $('Run Configuration').first().json.run_mode,\n  data_mode: Array.from(new Set(items.map(function (r) { return r.data_mode; }))).join(','),\n  total_companies: items.length, florida: count(function (r) { return r.state === 'FL'; }), georgia: count(function (r) { return r.state === 'GA'; }),\n  high_fit: count(function (r) { return r.final_fit === 'High Fit'; }), moderate_fit: count(function (r) { return r.final_fit === 'Moderate Fit'; }),\n  low_fit: count(function (r) { return r.final_fit === 'Low Fit'; }), insufficient_information: count(function (r) { return r.final_fit === 'Insufficient Information'; }),\n  top_candidates: top.map(row), comparison: ranked.map(row),\n  missing_information_summary: Object.keys(missingFreq).map(function (k) { return { item: k, companies: missingFreq[k] }; }).sort(function (a, b) { return b.companies - a.companies; }).slice(0, 15),\n  ai_failures: count(function (r) { return r.classification_error; }), enrichment_failures: count(function (r) { return r.enrichment_status === 'failed'; }),\n  discovered: (ds.place_results !== undefined ? ds.place_results : stats.discovered) || 0, rejected: (stats.rejected || 0) + (ds.out_of_scope_state || 0) + (ds.not_law || 0) + (ds.no_website || 0) + (ds.closed || 0),\n  duplicates_removed: (stats.duplicates_removed || 0) + (ds.merged_duplicates || 0), over_limit_dropped: (stats.over_limit_dropped || 0) + (ds.over_limit || 0),\n  source_counts: { serpapi: ds.serpapi || 0, apify_maps: ds.apify || 0, sunbiz: ds.sunbiz || 0, usaspending: ds.usaspending || 0, registry_matched: ds.registry_matched || 0, source_errors: ds.errors || 0 },\n};\nreturn [{ json: dash }];"
+      },
+      "id": "96cd2644-a622-462c-92dc-23ce51b2e977",
+      "name": "Build Dashboard Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5056,
+        1104
+      ],
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Write the executive summary for this screening run.\n\nRUN STATS: {{ JSON.stringify({ run_mode: $json.run_mode, data_mode: $json.data_mode, total: $json.total_companies, florida: $json.florida, georgia: $json.georgia, high: $json.high_fit, moderate: $json.moderate_fit, low: $json.low_fit, insufficient: $json.insufficient_information }) }}\n\nTOP CANDIDATES (ranked): {{ JSON.stringify($json.top_candidates) }}\n\nMOST COMMON MISSING INFORMATION: {{ JSON.stringify($json.missing_information_summary) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You write concise executive summaries for TrueGrit/VIMANA's acquisition research team (ASU capstone prototype). Use ONLY the data supplied; do not add outside facts.\nStructure: (1) one-paragraph overview with counts; (2) the strongest research candidates in rank order, each with 1-2 sentences on why it ranks there, citing score, evidence coverage and key evidence-backed indicators; (3) main risks and the most common information gaps; (4) recommended next research steps.\nRules: these are preliminary research candidates, NOT recommendations to acquire. Never say or imply any firm is for sale or willing to sell. State that scoring weights are provisional and that all candidates need human review before any action. If data_mode includes SAMPLE_DEMO, state prominently that the results come from fictional demonstration data and are not verified findings. If there are no top candidates, say so plainly. Plain text, no markdown tables, under 350 words."
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "id": "34fe6ef3-0a39-4913-b2a9-fb962f51d87e",
+      "name": "AI Executive Summary",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        5280,
+        1104
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.6-luna"
+        },
+        "builtInTools": {},
+        "options": {
+          "timeout": 90000,
+          "maxRetries": 2
+        }
+      },
+      "id": "52646903-7741-4f50-a980-134f15644123",
+      "name": "OpenAI Summary Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        5360,
+        1328
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "334lZgf9HgL2DqjR",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const d = $('Build Dashboard Data').first().json;\nconst summary = ($json.text && String($json.text).trim()) ? String($json.text).trim() : 'Executive summary generation failed - see dashboard data.';\nreturn { json: {\n  run_id: d.run_id, generated_at: d.generated_at, run_mode: d.run_mode, data_mode: d.data_mode,\n  total_companies: d.total_companies, florida: d.florida, georgia: d.georgia, high_fit: d.high_fit, moderate_fit: d.moderate_fit, low_fit: d.low_fit,\n  insufficient_information: d.insufficient_information, executive_summary: summary,\n  top_10_candidates_json: JSON.stringify(d.top_candidates), company_comparison_json: JSON.stringify(d.comparison),\n  missing_information_json: JSON.stringify(d.missing_information_summary),\n} };"
+      },
+      "id": "2da077c4-e3b6-4154-9512-1fdcefa3e4cd",
+      "name": "Compose Dashboard Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5632,
+        1104
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Run Configuration\").first().json.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Dashboard_Summary"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn"
+        }
+      },
+      "id": "e72d6caf-fd2d-476d-9213-2c275ae839a4",
+      "name": "Save to Dashboard_Summary",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        5856,
+        1008
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YlMgclAPtGgkpKaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const d = $('Build Dashboard Data').first().json;\nconst failures = d.ai_failures + d.enrichment_failures;\nreturn { json: {\n  run_id: d.run_id, finished_at: new Date().toISOString(), run_mode: d.run_mode, data_mode: d.data_mode,\n  candidates_discovered: d.discovered, rejected_invalid: d.rejected, duplicates_removed: d.duplicates_removed, dropped_over_limit: d.over_limit_dropped,\n  companies_processed: d.total_companies, high_fit: d.high_fit, moderate_fit: d.moderate_fit, low_fit: d.low_fit, insufficient_information: d.insufficient_information,\n  ai_classification_failures: d.ai_failures, enrichment_failures: d.enrichment_failures,\n  serpapi_results: d.source_counts ? d.source_counts.serpapi : 0, apify_maps_results: d.source_counts ? d.source_counts.apify_maps : 0,\n  sunbiz_records: d.source_counts ? d.source_counts.sunbiz : 0, usaspending_records: d.source_counts ? d.source_counts.usaspending : 0, registry_matches: d.source_counts ? d.source_counts.registry_matched : 0,\n  status: (failures > 0 || (d.source_counts && d.source_counts.source_errors > 0)) ? 'completed_with_errors' : 'completed',\n} };"
+      },
+      "id": "28f93d8c-5fff-487f-bf89-90bcfb870dfe",
+      "name": "Shape Run_Log Row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5856,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Run Configuration\").first().json.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Run_Log"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "run_id"
+          ],
+          "schema": [
+            {
+              "id": "run_id",
+              "displayName": "run_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ]
+        },
+        "options": {
+          "handlingExtraData": "insertInNewColumn"
+        }
+      },
+      "id": "fb0eeb47-5ce2-49e5-bb81-f04fc5fb0361",
+      "name": "Save to Run_Log",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        6080,
+        1200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 2000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YlMgclAPtGgkpKaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.usaspending.gov/api/v2/search/spending_by_award/",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"filters\": {\n    \"recipient_search_text\": [\"LAW\"],\n    \"recipient_locations\": [\n      { \"country\": \"USA\", \"state\": \"FL\" },\n      { \"country\": \"USA\", \"state\": \"GA\" }\n    ],\n    \"award_type_codes\": [\"A\", \"B\", \"C\", \"D\"],\n    \"time_period\": [\n      { \"start_date\": \"2023-10-01\", \"end_date\": \"2026-09-30\" }\n    ]\n  },\n  \"fields\": [\n    \"Award ID\",\n    \"Recipient Name\",\n    \"Award Amount\",\n    \"Awarding Agency\",\n    \"Start Date\",\n    \"recipient_id\"\n  ],\n  \"sort\": \"Award Amount\",\n  \"order\": \"desc\",\n  \"limit\": 25,\n  \"page\": 1\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        880
+      ],
+      "id": "95862a30-d74d-42c1-9d65-4165e18789e1",
+      "name": "API - USAspending Contracts",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://sunbizdaily.com/api/v2/filings/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "corporation_name",
+              "value": "LAW FIRM"
+            },
+            {
+              "name": "status",
+              "value": "active"
+            },
+            {
+              "name": "per_page",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        528
+      ],
+      "id": "26a7721e-9b9d-4f6d-ba0b-a77f8ebd0a14",
+      "name": "API - Sunbiz Daily Registry",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WzElqTBgIma5c1c4",
+          "name": "Sunbiz-API-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.apify.com/v2/acts/compass~crawler-google-places/run-sync-get-dataset-items",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ searchStringsArray: [$json.phrase], locationQuery: $json.city_hint + ', ' + $json.state_name, maxCrawledPlacesPerSearch: $('Run Configuration').first().json.demo_mode ? 5 : 10, language: 'en', skipClosedPlaces: true }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          },
+          "timeout": 300000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        704
+      ],
+      "id": "fc0de50f-4a08-4cff-85ba-bb31dfd61c4b",
+      "name": "API \u2013 Apify Maps Discovery",
+      "retryOnFail": true,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "wA5Pu7vAf2ttzhEC",
+          "name": "Apify-API-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpQueryAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google_maps"
+            },
+            {
+              "name": "type",
+              "value": "search"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.text_query }}"
+            },
+            {
+              "name": "hl",
+              "value": "en"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": "={{ $(\"Run Configuration\").first().json.request_interval_ms }}"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1120,
+        352
+      ],
+      "id": "8035e1b1-18da-4a73-ae42-73eef0c13441",
+      "name": "API \u2013 SerpApi Search",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 2000,
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpQueryAuth": {
+          "id": "TafpdkEGHv7BYaP0",
+          "name": "Serpapi-API-key"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        2160
+      ],
+      "id": "188cbd10-4d5c-462c-9e0d-4a918466415a",
+      "name": "Import \u2013 Florida Sunbiz Official Files",
+      "notesInFlow": true,
+      "notes": "Placeholder \u2013 manual import. Free official data from sftp.floridados.gov (daily + quarterly text files). Not a REST API. Future: n8n SFTP node on a schedule + Code node to parse. Sunbiz Daily API covers the same data in an easier format."
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        1920
+      ],
+      "id": "2b16ab64-d7c3-41b4-afe4-81b27e08b30f",
+      "name": "Research \u2013 Georgia SOS Registry",
+      "notesInFlow": true,
+      "notes": "Placeholder \u2013 manual lookup only. Georgia has no free API or free bulk download. Use ecorp.sos.ga.gov/BusinessSearch to verify individual firms. Paid bulk option: $1,000 one-time or $100 setup + $500/month (needs sponsor approval)."
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1104,
+        1728
+      ],
+      "id": "a22b7dc8-9057-4dc7-ae0e-e7f0e93cf0b2",
+      "name": "API \u2013 SAM.gov Entity Search",
+      "notesInFlow": true,
+      "notes": "Placeholder \u2013 needs SAM.gov account + API key (account approval can be slow). Free key allows only 10 requests/day. Endpoint: api.sam.gov/entity-information/v4/entities, filter state FL/GA + NAICS 541110 (law offices). Low coverage of law firms."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Turn every discovery API's response into one common record shape.\n// Place sources (SerpApi, Apify Maps) supply firms with websites; registry sources (Sunbiz Daily, USAspending)\n// supply entity / federal-contract records that are cross-referenced onto those firms in the next step.\nconst ST = { florida: 'FL', georgia: 'GA', 'north carolina': 'NC', 'south carolina': 'SC', virginia: 'VA' };\nfunction stateFrom(addr, st) {\n  if (st) { const k = String(st).trim(); if (k.length === 2) return k.toUpperCase(); if (ST[k.toLowerCase()]) return ST[k.toLowerCase()]; }\n  const m = String(addr || '').match(/,\\s*([A-Z]{2})\\s+\\d{5}/); return m ? m[1] : '';\n}\nfunction cityFrom(addr) { const p = String(addr || '').split(','); return p.length >= 3 ? p[p.length - 2].trim() : ''; }\nconst out = [];\nconst counts = { serpapi: 0, apify: 0, sunbiz: 0, usaspending: 0, errors: 0 };\nfor (const item of $input.all()) {\n  const d = item.json || {};\n  if (d.error && !d.local_results && !d.filings && !d.results && !d.title) { counts.errors++; continue; }\n  if (Array.isArray(d.local_results)) {\n    const q = (d.search_parameters && d.search_parameters.q) || '';\n    for (const r of d.local_results) {\n      counts.serpapi++;\n      out.push({ kind: 'place', source: 'SerpApi (Google Maps)', company_name: r.title || '', address: r.address || '', city: cityFrom(r.address), state: stateFrom(r.address),\n        phone: r.phone || '', website: r.website || '', types: [r.type || ''].concat(r.types || []).filter(Boolean), rating: r.rating ?? null, reviews: r.reviews ?? null,\n        place_id: r.place_id || '', open_state: r.open_state || '', query: q });\n    }\n  } else if (Array.isArray(d.filings)) {\n    for (const r of d.filings) {\n      counts.sunbiz++;\n      out.push({ kind: 'registry', source: 'Sunbiz Daily', company_name: r.corporation_name || '', city: r.city || '', state: 'FL', zip: r.zip || '',\n        entity_number: r.corporation_number || '', entity_status: r.status === 'A' ? 'Active' : (r.status || ''), entity_type: r.filing_type_display || '', file_date: r.file_date || '' });\n    }\n  } else if (Array.isArray(d.results)) {\n    for (const r of d.results) {\n      counts.usaspending++;\n      out.push({ kind: 'registry', source: 'USAspending', company_name: r['Recipient Name'] || '', award_amount: Number(r['Award Amount']) || 0,\n        agency: r['Awarding Agency'] || '', award_start: r['Start Date'] || '', recipient_id: r.recipient_id || '' });\n    }\n  } else if (d.title) {\n    counts.apify++;\n    out.push({ kind: 'place', source: 'Apify (Google Maps)', company_name: d.title, address: d.address || '', city: d.city || cityFrom(d.address), state: stateFrom(d.address, d.state),\n      phone: d.phone || '', website: d.website || '', types: (d.categories && d.categories.length ? d.categories : [d.categoryName || '']).filter(Boolean),\n      rating: d.totalScore ?? null, reviews: d.reviewsCount ?? null, place_id: d.placeId || '', open_state: d.permanentlyClosed ? 'Permanently closed' : '', query: d.searchString || '' });\n  }\n}\nout.forEach(function (r) { r._source_counts = counts; });\nreturn out.map(function (j) { return { json: j }; });\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1568,
+        608
+      ],
+      "id": "03f35580-50aa-4c56-8783-d6ea58c0bb68",
+      "name": "Normalize \u2013 Company Discovery Results"
+    },
+    {
+      "parameters": {
+        "numberInputs": 4
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1344,
+        608
+      ],
+      "id": "d45d76fd-f995-47d7-91b2-1cfa4281ff59",
+      "name": "Merge"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        896,
+        608
+      ],
+      "id": "bc38ed15-b02f-4a8e-9248-a4a1d0f5cd95",
+      "name": "Start \u2013 Discovery Test"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Sponsor scorecard (Additional Criteria v2.3): keyword scoring of website language + revenue estimate from attorney count.\n// Each unique term counts once. Longer phrases are matched first and masked so overlapping shorter terms are not double-counted.\nconst cfg = $('Run Configuration').first().json;\nconst bands = cfg.scorecard_bands || { strong: 15, moderate: 5 };\nconst rpa = cfg.revenue_per_attorney || { low: 300000, high: 500000 };\nconst r = Object.assign({}, $json);\nconst T = {\n  5: ['insurance defense', 'insurer representation', 'insurance carrier', 'insurance carriers', 'panel counsel', 'approved panel counsel', 'coverage counsel', 'insurance coverage', 'first-party coverage', 'third-party coverage', 'duty to defend', 'duty to indemnify', 'reservation of rights', 'bad faith defense', 'extra-contractual liability', 'reinsurance', \"Lloyd's\", 'London Market', 'excess carrier', 'excess insurance', 'self-insured', 'self-insured retention', 'TPA', 'third-party administrator', 'claims administrator', 'claims professional', 'claims professionals', 'claims litigation', 'subrogation'],\n  3: ['casualty defense', 'general liability', 'complex casualty', 'excess casualty', 'commercial auto', 'trucking defense', 'transportation liability', 'construction defect', 'construction liability', 'premises liability', 'professional liability', 'errors and omissions', 'E&O', 'medical malpractice defense', 'healthcare liability', 'product liability defense', 'products liability defense', 'toxic tort', 'environmental liability', \"workers' compensation defense\", 'workers compensation defense', 'employment practices liability', 'EPLI', 'D&O liability', 'cyber liability', 'property damage', 'first-party property', 'maritime liability', 'admiralty liability', 'aviation liability', 'fidelity', 'surety'],\n  1: ['commercial litigation', 'employment defense', 'construction litigation', 'healthcare litigation', 'real estate litigation', 'class action defense', 'appellate litigation', 'regulatory defense', 'business torts'],\n  '-3': ['M&A', 'mergers and acquisitions', 'corporate transactions', 'private equity', 'venture capital', 'securities offerings', 'tax', 'bankruptcy', 'restructuring', 'patent litigation', 'IP litigation', 'intellectual property litigation', 'trademark', 'antitrust', 'white collar', 'investigations', 'trusts and estates', 'estate planning', 'immigration', 'family law', 'public finance', 'banking and finance', 'fund formation'],\n  '-5': ['plaintiff personal injury', 'plaintiff medical malpractice', 'plaintiff product liability', 'plaintiff mass tort', 'contingency fee', 'no fee unless we win', 'accident victims', 'injured plaintiffs', 'policyholder representation', 'insurance recovery for policyholders', 'suing insurance companies', 'coverage recovery', 'bad-faith claims against insurers', 'bad faith claims against insurers'],\n};\nfunction esc(s) { return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }\nfunction rx(term) {\n  let p = esc(term.toLowerCase()).replace(/\\\\-/g, '-').replace(/[ -]+/g, '[\\\\s\\\\-]+').replace(/&|\\band\\b/g, '(?:&|and|&amp;)').replace(/'/g, \"['\u2019]?\");\n  return new RegExp('(^|[^a-z0-9])' + p + '(?=$|[^a-z0-9])', 'i');\n}\nconst all = [];\nObject.keys(T).forEach(function (w) { T[w].forEach(function (t) { all.push({ term: t, weight: Number(w) }); }); });\nall.sort(function (a, b) { return b.term.length - a.term.length; });\nlet text = ' ' + String(r.website_text || '').toLowerCase().replace(/\\s+/g, ' ') + ' ';\nconst matched = [];\nconst seenTerm = {};\nall.forEach(function (t) {\n  const key = t.term.toLowerCase().replace(/[^a-z0-9]/g, '');\n  if (seenTerm[key]) return;\n  const re = rx(t.term);\n  const m = text.match(re);\n  if (!m) return;\n  seenTerm[key] = true;\n  matched.push(t);\n  const g = new RegExp(re.source, 'gi');\n  text = text.replace(g, function (s, pre) { return pre + ' '.repeat(s.length - pre.length); });\n});\nconst score = matched.reduce(function (s, t) { return s + t.weight; }, 0);\nconst hasText = !!(r.website_text && r.website_text.length > 200);\nconst band = !hasText ? 'No website text' : score >= bands.strong ? 'Strong insurance focus' : score >= bands.moderate ? 'Moderate insurance focus' : score >= 0 ? 'Weak / unclear' : 'Likely non-insurance or plaintiff';\nr.insurance_score = hasText ? score : null;\nr.insurance_band = band;\nr.insurance_terms_matched = matched.sort(function (a, b) { return b.weight - a.weight; }).map(function (t) { return t.term + ' (' + (t.weight > 0 ? '+' : '') + t.weight + ')'; });\nr.plaintiff_terms = matched.filter(function (t) { return t.weight === -5; }).map(function (t) { return t.term; });\n\nconst risks = (r.potential_risks || []).slice();\nif (hasText) {\n  if (r.insurance_defense_fit === 'Strong' && score < bands.moderate) risks.push('Keyword scorecard (' + score + ') does not corroborate the AI \"Strong\" insurance-defense rating - verify practice mix');\n  if ((r.insurance_defense_fit === 'None' || r.insurance_defense_fit === 'Unknown') && score >= bands.strong) risks.push('Keyword scorecard (' + score + ') suggests insurance focus but AI rated fit ' + r.insurance_defense_fit + ' - verify');\n  if (r.plaintiff_terms.length) risks.push('Plaintiff-side language on website: ' + r.plaintiff_terms.join(', '));\n}\nif (r.defense_vs_plaintiff === 'Plaintiff') risks.push('AI assessment: primarily plaintiff-side');\nif (r.civil_vs_criminal === 'Criminal') risks.push('AI assessment: primarily criminal practice');\nr.potential_risks = risks;\n\nconst att = r.attorney_count;\nconst prov = (r.provenance || []).slice();\nconst now = new Date().toISOString();\nif (att !== null && att !== undefined && att > 0) {\n  const lo = att * rpa.low, hi = att * rpa.high;\n  const fmt = function (n) { return '$' + (n / 1e6).toFixed(1) + 'M'; };\n  r.revenue_estimate_low = lo; r.revenue_estimate_high = hi;\n  r.revenue_estimate = fmt(lo) + '-' + fmt(hi) + ' (est.)';\n  r.in_size_band = att >= 10 && att <= 400;\n  if (!r.revenue) {\n    r.revenue = r.revenue_estimate; r.revenue_status = r.data_mode === 'LIVE' ? 'estimated' : 'sample_demo';\n    prov.push({ field: 'revenue', value: r.revenue_estimate, source: 'Formula: attorney_count x $300k-$500k (sponsor rule of thumb)', url: '', evidence_quote: att + ' attorneys', status: 'estimated', extracted_at: now });\n  }\n} else { r.revenue_estimate = null; r.in_size_band = null; }\nif (hasText) prov.push({ field: 'insurance_score', value: String(score), source: 'Sponsor keyword scorecard v2.3', url: r.website || '', evidence_quote: r.insurance_terms_matched.join('; ').slice(0, 480), status: 'estimated', extracted_at: now });\nr.provenance = prov;\n\n// Names used by the public-record lookups that follow\nconst base = String(r.company_name || '').replace(/^(the )?law offices? of /i, '').replace(/,?\\s+(llp|l\\.l\\.p\\.|llc|l\\.l\\.c\\.|pllc|p\\.l\\.l\\.c\\.|p\\.a\\.|pa|p\\.c\\.|pc|p\\.l\\.|pl|chartered|attorneys at law|attorneys|lawyers)\\.?$/i, '').replace(/,\\s*$/, '').trim();\nr.registry_name = base;\nr.sunbiz_search_url = 'https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?inquiryType=EntityName&searchTerm=' + encodeURIComponent(base.toUpperCase());\nr.ga_sos_search_url = 'https://ecorp.sos.ga.gov/BusinessSearch';\nreturn { json: r };\n"
+      },
+      "id": "05a3074e-2730-47dd-9fe8-fe02f4e2fd55",
+      "name": "Insurance Scorecard + Revenue Estimate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3168,
+        656
+      ],
+      "notes": "Sponsor keyword scorecard (+5/+3/+1/-3/-5) and attorneys x $300k-$500k revenue estimate."
+    },
+    {
+      "parameters": {
+        "url": "https://sunbizdaily.com/api/v2/filings/",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "corporation_name",
+              "value": "={{ $json.registry_name }}"
+            },
+            {
+              "name": "per_page",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          },
+          "timeout": 20000
+        }
+      },
+      "id": "0817d146-9230-4f46-9b7c-6268d6285b44",
+      "name": "Sunbiz Entity Lookup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3344,
+        928
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "notes": "Florida entity filings (status, file date, entity type).",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "WzElqTBgIma5c1c4",
+          "name": "Sunbiz-API-Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.usaspending.gov/api/v2/search/spending_by_award/",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filters: { recipient_search_text: [$('Insurance Scorecard + Revenue Estimate').item.json.registry_name], award_type_codes: [\"A\",\"B\",\"C\",\"D\"], time_period: [{ start_date: \"2020-10-01\", end_date: $now.toFormat(\"yyyy-MM-dd\") }] }, fields: [\"Award ID\",\"Recipient Name\",\"Award Amount\",\"Awarding Agency\",\"Start Date\",\"recipient_id\"], sort: \"Award Amount\", order: \"desc\", limit: 25, page: 1 }) }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 500
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "cbf821cc-e718-482e-9825-208e571a38d4",
+      "name": "USAspending Award Lookup",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        3536,
+        1072
+      ],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput",
+      "notes": "Federal contract awards since FY2021 (free, no key). Context only."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge Sunbiz Daily (Florida entity filings) and USAspending (federal contract awards) back onto each firm.\n// Not finding a firm in either source is NOT treated as negative.\nconst bases = $('Insurance Scorecard + Revenue Estimate').all();\nconst sun = $('Sunbiz Entity Lookup').all();\nconst usa = $input.all();\nconst now = new Date().toISOString();\nconst SUFFIX = /\\b(llp|llc|pllc|pa|pc|pl|chartered|inc|corp|corporation|law firm|law group|law offices?|attorneys at law|of)\\b/g;\nfunction core(n) { return String(n || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]/g, ' ').replace(SUFFIX, ' ').replace(/ +/g, ' ').trim(); }\nreturn bases.map(function (b, i) {\n  const r = Object.assign({}, b.json);\n  const prov = (r.provenance || []).slice();\n  const target = core(r.registry_name || r.company_name);\n  // --- Sunbiz Daily\n  const sd = (sun[i] && sun[i].json) || {};\n  const filings = Array.isArray(sd.filings) ? sd.filings : [];\n  const hit = filings.find(function (f) { const c = core(f.corporation_name); return c === target || (target.length > 6 && (c.indexOf(target) === 0 || target.indexOf(c) === 0)); });\n  if (hit) {\n    r.entity_name = hit.corporation_name; r.entity_number = hit.corporation_number; r.entity_type = hit.filing_type_display;\n    r.entity_status = hit.status === 'A' ? 'Active' : hit.status === 'I' ? 'Inactive' : (hit.status || 'Unknown');\n    r.entity_file_date = hit.file_date || null; r.entity_status_label = 'Verified';\n    r.entity_source_url = 'https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?inquiryType=DocumentNumber&searchTerm=' + encodeURIComponent(hit.corporation_number || '');\n    prov.push({ field: 'entity_status', value: r.entity_status + ' - ' + hit.corporation_name + ' (' + hit.corporation_number + ', filed ' + hit.file_date + ')', source: 'Sunbiz Daily API (Florida Division of Corporations data)', url: r.entity_source_url, evidence_quote: '', status: 'verified', extracted_at: now });\n    if (!r.year_founded && hit.file_date) {\n      const y = parseInt(String(hit.file_date).slice(0, 4), 10);\n      r.year_founded = y; r.years_in_operation = new Date().getFullYear() - y; r.year_founded_status = 'estimated';\n      prov.push({ field: 'year_founded', value: String(y), source: 'Sunbiz filing date (entity may post-date firm founding)', url: r.entity_source_url, evidence_quote: '', status: 'estimated', extracted_at: now });\n    }\n  } else {\n    r.entity_status = null; r.entity_status_label = sd.error ? 'Lookup failed' : 'Missing';\n    r.entity_source_url = r.state === 'FL' ? r.sunbiz_search_url : r.ga_sos_search_url;\n    r.missing_information = (r.missing_information || []).concat(['Entity registration (check ' + (r.state === 'FL' ? 'Sunbiz' : 'GA Secretary of State') + ' manually)']);\n  }\n  // --- USAspending\n  const ud = (usa[i] && usa[i].json) || {};\n  const awards = (Array.isArray(ud.results) ? ud.results : []).filter(function (a) { const c = core(a['Recipient Name']); return c === target || (target.length > 6 && c.indexOf(target) === 0); });\n  r.federal_awards_count = awards.length;\n  r.federal_awards_total = Math.round(awards.reduce(function (s, a) { return s + (Number(a['Award Amount']) || 0); }, 0));\n  r.federal_award_agencies = Array.from(new Set(awards.map(function (a) { return a['Awarding Agency']; }))).slice(0, 5);\n  if (awards.length) {\n    const rid = awards[0].recipient_id;\n    r.federal_awards_url = rid ? 'https://www.usaspending.gov/recipient/' + rid + '/latest' : 'https://www.usaspending.gov/search';\n    prov.push({ field: 'federal_awards', value: awards.length + ' contract award(s), $' + r.federal_awards_total.toLocaleString('en-US') + ' (' + r.federal_award_agencies.join(', ') + ')', source: 'USAspending.gov API', url: r.federal_awards_url, evidence_quote: '', status: 'verified', extracted_at: now });\n  }\n  r.provenance = prov;\n  return { json: r };\n});\n"
+      },
+      "id": "e5e93142-dfbb-4829-a415-78dd3e490397",
+      "name": "Merge Public Records",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3888,
+        1088
+      ]
+    },
+    {
+      "id": "708f8947-a110-41dd-a511-f6e3a91fdb75",
+      "name": "Read Existing Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1728,
+        608
+      ],
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Run Configuration\").first().json.spreadsheet_id }}"
+        },
+        "operation": "read",
+        "options": {},
+        "resource": "sheet",
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Company_Leads"
+        }
+      },
+      "notes": "Firms already researched; Parse Places Results skips them so each run finds new firms.",
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "YlMgclAPtGgkpKaz",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "id": "ae5c0899-6d77-4800-a2b4-7860992a820e",
+      "name": "One Apify Search per City",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1056,
+        512
+      ],
+      "parameters": {
+        "conditions": {
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "p0",
+              "leftValue": "={{ $json.phrase_index }}",
+              "operator": {
+                "operation": "equals",
+                "type": "number"
+              },
+              "rightValue": 0
+            }
+          ],
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          }
+        },
+        "options": {}
+      },
+      "notes": "Apify free plan allows 5 concurrent runs: Maps discovery runs once per city (first phrase); SerpApi covers every phrase."
+    },
+    {
+      "id": "78fb7509-d6c3-4d13-bdcd-d4288d4ac829",
+      "name": "Direct Homepage Fetch (fallback)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2400,
+        608
+      ],
+      "parameters": {
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (compatible; TrueGritAcquisitionResearch/0.2; academic capstone; public pages only)"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchInterval": 300,
+              "batchSize": 1
+            }
+          },
+          "redirect": {
+            "redirect": {
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 15000
+        },
+        "sendHeaders": true,
+        "url": "={{ $json.website }}"
+      },
+      "notes": "Free fallback when Apify could not scrape a site.",
+      "onError": "continueRegularOutput",
+      "alwaysOutputData": true
+    },
+    {
+      "id": "61464bc6-2fae-43e0-8af9-18052fe9cf95",
+      "name": "Use Fallback Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2512,
+        608
+      ],
+      "parameters": {
+        "jsCode": "// Fallback: if Apify could not scrape a firm's site (busy / blocked), use the homepage fetched directly by n8n.\nconst cands = $('Extract Website Text').all().map(function (i) { return i.json; });\nconst now = new Date().toISOString();\nconst NL = String.fromCharCode(10), CR = String.fromCharCode(13), TAB = String.fromCharCode(9);\nreturn $input.all().map(function (item, idx) {\n  const c = Object.assign({}, cands[idx] || {});\n  if (c.pages_scraped > 0 || !c.website) return { json: c };\n  const html = (item.json && typeof item.json.data === 'string') ? item.json.data : '';\n  let text = html.replace(/<script[^>]*>[^]*?<[/]script>/gi, ' ').replace(/<style[^>]*>[^]*?<[/]style>/gi, ' ').replace(/<[^>]*>/g, ' ');\n  text = text.split(NL).join(' ').split(CR).join(' ').split(TAB).join(' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/ +/g, ' ').trim().slice(0, 8000);\n  if (text.length > 200) {\n    c.website_text = '=== PAGE: ' + c.website + ' (homepage, direct fetch) ===' + NL + text;\n    c.pages_scraped = 1; c.scraped_page_urls = [c.website]; c.scrape_method = 'direct_fetch_fallback'; delete c.scrape_note;\n    c.sources = (c.sources || []).concat([{ field: 'website_page', value: '(homepage text, direct fetch fallback)', source: 'Firm website (direct fetch)', url: c.website, status: 'verified', extracted_at: now }]);\n    c.source_urls = Array.from(new Set((c.source_urls || []).concat([c.website])));\n  }\n  return { json: c };\n});\n"
+      }
+    },
+    {
+      "id": "2b944b0a-a8d7-4cd5-bc1e-952a659d690a",
+      "name": "OpenAI Fixer Model (classification)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3008,
+        736
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.6-luna"
+        },
+        "options": {
+          "maxRetries": 2,
+          "timeout": 90000
+        }
+      },
+      "notes": "Used only to repair AI output that does not match the classification JSON schema.",
+      "credentials": {
+        "openAiApi": {
+          "id": "334lZgf9HgL2DqjR",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "id": "4ba61770-ab0f-461d-ad48-ef62a20d5cc4",
+      "name": "OpenAI Fixer Model (research)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        4208,
+        448
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "gpt-5.6-luna"
+        },
+        "options": {
+          "maxRetries": 2,
+          "timeout": 120000
+        }
+      },
+      "notes": "Used only to repair research-agent output that does not match the research JSON schema.",
+      "credentials": {
+        "openAiApi": {
+          "id": "334lZgf9HgL2DqjR",
+          "name": "OpenAI account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Test Run": {
+      "main": [
+        [
+          {
+            "node": "Run Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run Configuration": {
+      "main": [
+        [
+          {
+            "node": "Sample Mode?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Run Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sample Mode?": {
+      "main": [
+        [
+          {
+            "node": "Clean and Deduplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Discovery Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean and Deduplicate": {
+      "main": [
+        [
+          {
+            "node": "AI Classify Firm",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Places Results": {
+      "main": [
+        [
+          {
+            "node": "Apify Website Scraper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Classify Firm": {
+      "main": [
+        [
+          {
+            "node": "Merge Classification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Classification Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Classify Firm",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classification JSON Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Classify Firm",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "High or Moderate Fit?": {
+      "main": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Combine Researched and Screened-Out Firms",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Research Agent": {
+      "main": [
+        [
+          {
+            "node": "Merge Enrichment",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Research Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "fetch_public_page": {
+      "ai_tool": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Research JSON Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Research Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Enrichment": {
+      "main": [
+        [
+          {
+            "node": "Combine Researched and Screened-Out Firms",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine Researched and Screened-Out Firms": {
+      "main": [
+        [
+          {
+            "node": "Acquisition Fit Score",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Acquisition Fit Score": {
+      "main": [
+        [
+          {
+            "node": "Shape Company_Leads Row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Shape AI_Analysis Row",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Shape Source_Log Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Shape Review_Queue Rows",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Dashboard Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Company_Leads Row": {
+      "main": [
+        [
+          {
+            "node": "Save to Company_Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape AI_Analysis Row": {
+      "main": [
+        [
+          {
+            "node": "Save to AI_Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Source_Log Rows": {
+      "main": [
+        [
+          {
+            "node": "Save to Source_Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Review_Queue Rows": {
+      "main": [
+        [
+          {
+            "node": "Save to Review_Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dashboard Data": {
+      "main": [
+        [
+          {
+            "node": "AI Executive Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Executive Summary": {
+      "main": [
+        [
+          {
+            "node": "Compose Dashboard Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Summary Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Executive Summary",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose Dashboard Row": {
+      "main": [
+        [
+          {
+            "node": "Save to Dashboard_Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Shape Run_Log Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Run_Log Row": {
+      "main": [
+        [
+          {
+            "node": "Save to Run_Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API - USAspending Contracts": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 3
+          }
+        ]
+      ]
+    },
+    "API \u2013 SerpApi Search": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API - Sunbiz Daily Registry": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "API \u2013 Apify Maps Discovery": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Normalize \u2013 Company Discovery Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Start \u2013 Discovery Test": {
+      "main": [
+        [
+          {
+            "node": "API - Sunbiz Daily Registry",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "API - USAspending Contracts",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "API \u2013 SerpApi Search",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "One Apify Search per City",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Apify Website Scraper": {
+      "main": [
+        [
+          {
+            "node": "Extract Website Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Classification": {
+      "main": [
+        [
+          {
+            "node": "Insurance Scorecard + Revenue Estimate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insurance Scorecard + Revenue Estimate": {
+      "main": [
+        [
+          {
+            "node": "Sunbiz Entity Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sunbiz Entity Lookup": {
+      "main": [
+        [
+          {
+            "node": "USAspending Award Lookup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "USAspending Award Lookup": {
+      "main": [
+        [
+          {
+            "node": "Merge Public Records",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge Public Records": {
+      "main": [
+        [
+          {
+            "node": "High or Moderate Fit?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Discovery Queries": {
+      "main": [
+        [
+          {
+            "node": "Start \u2013 Discovery Test",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize \u2013 Company Discovery Results": {
+      "main": [
+        [
+          {
+            "node": "Read Existing Leads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Existing Leads": {
+      "main": [
+        [
+          {
+            "node": "Parse Places Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "One Apify Search per City": {
+      "main": [
+        [
+          {
+            "node": "API \u2013 Apify Maps Discovery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Website Text": {
+      "main": [
+        [
+          {
+            "node": "Direct Homepage Fetch (fallback)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Direct Homepage Fetch (fallback)": {
+      "main": [
+        [
+          {
+            "node": "Use Fallback Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Use Fallback Text": {
+      "main": [
+        [
+          {
+            "node": "Clean and Deduplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Fixer Model (classification)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Classification JSON Schema",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Fixer Model (research)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Research JSON Schema",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  }
+}
