@@ -37,10 +37,10 @@ export function DataExplorer() {
       <header className="detail-bar">
         <Link href="/app" className="brand-tile" aria-label="Back to the workspace">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="" width={20} height={20} />
+          <img src="/logo-mono.svg" alt="" width={20} height={20} />
         </Link>
         <nav className="crumbs" aria-label="Breadcrumb">
-          <Link href="/app">AAI</Link>
+          <Link href="/app">Lodestar</Link>
           <span className="sep">/</span>
           <Link href="/app">Workspace</Link>
           <span className="sep">/</span>

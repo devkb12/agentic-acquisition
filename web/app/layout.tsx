@@ -14,11 +14,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Agentic Acquisition Intelligence",
-    template: "%s · AAI",
+    default: "Lodestar · Acquisition intelligence",
+    template: "%s · Lodestar",
   },
   description:
-    "Research on Florida and Georgia insurance-defense law firms for TrueGrit Capital and VIMANA. AI researches. People decide.",
+    "Lodestar researches Florida and Georgia insurance-defense law firms for TrueGrit Capital and VIMANA. AI researches. People decide.",
   robots: { index: false, follow: false },
 };
 

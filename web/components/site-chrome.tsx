@@ -15,10 +15,10 @@ const NAV = [
 
 export function Brand() {
   return (
-    <Link href="/" className="brand" aria-label="Agentic Acquisition Intelligence home">
+    <Link href="/" className="brand" aria-label="Lodestar home">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo.svg" alt="" width={36} height={36} />
-      <span>AAI</span>
+      <span>Lodestar</span>
     </Link>
   );
 }

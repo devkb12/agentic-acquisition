@@ -1,7 +1,7 @@
 "use client";
 
 // About: principles, methodology (read live from the workflow settings) and known limits.
-import { CircleAlert, Gavel, Info, Scale, ShieldCheck, SearchCheck, TriangleAlert, Users } from "lucide-react";
+import { CircleAlert, Compass, Gavel, Info, Scale, ShieldCheck, SearchCheck, TriangleAlert, Users } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getWorkspace } from "@/lib/api";
 import type { Config } from "@/lib/types";
@@ -100,8 +100,9 @@ export function About() {
               <em>a human decision.</em>
             </h1>
             <p className="lead">
-              Agentic Acquisition Intelligence is an ASU MSAIB capstone for TrueGrit Capital and VIMANA. It researches Florida
-              and Georgia insurance-defense law firms and explains how each one fits the sponsors&apos; criteria.
+              Lodestar is the research dashboard of Agentic Acquisition Intelligence, an ASU MSAIB capstone for TrueGrit
+              Capital and VIMANA. It researches Florida and Georgia insurance-defense law firms and explains how each one
+              fits the sponsors&apos; criteria.
             </p>
           </div>
         </section>
@@ -246,6 +247,19 @@ export function About() {
               ))}
             </ul>
           </section>
+
+          <div className="context-box" style={{ marginBottom: 18 }}>
+            <Compass size={22} aria-hidden />
+            <div>
+              <div className="eyebrow" style={{ marginBottom: 8 }}>
+                Why “Lodestar”
+              </div>
+              <p>
+                A lodestar is the star you steer by. In law, the lodestar method values legal work as hours times a
+                reasonable rate, close to how this tool estimates a firm&apos;s revenue from its attorney count.
+              </p>
+            </div>
+          </div>
 
           <div className="context-box">
             <ShieldCheck size={22} aria-hidden />

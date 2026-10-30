@@ -102,10 +102,10 @@ function FirmPageInner({ id }: { id: string }) {
       <header className="detail-bar">
         <Link href="/app" className="brand-tile" aria-label="Back to the workspace">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="" width={20} height={20} />
+          <img src="/logo-mono.svg" alt="" width={20} height={20} />
         </Link>
         <nav className="crumbs" aria-label="Breadcrumb">
-          <Link href="/app">AAI</Link>
+          <Link href="/app">Lodestar</Link>
           <span className="sep">/</span>
           <Link href="/app">Workspace</Link>
           <span className="sep">/</span>
@@ -150,7 +150,7 @@ function FirmPageInner({ id }: { id: string }) {
         {firm && (
           <>
             <div className="print-only" style={{ fontSize: 10, marginBottom: 8 }}>
-              Agentic Acquisition Intelligence · research brief printed {date(new Date().toISOString())} · research only, not a
+              Lodestar · research brief printed {date(new Date().toISOString())} · research only, not a
               recommendation to acquire
             </div>
             <div className="detail-head">
@@ -192,7 +192,7 @@ function FirmPageInner({ id }: { id: string }) {
                   <span>{firm.score ?? "—"}</span>
                 </div>
                 <div>
-                  <div className="label">AAI fit score</div>
+                  <div className="label">Lodestar fit score</div>
                   <div className="phrase">{scorePhrase(firm.fit)}</div>
                   <div className="cov">
                     {firm.coverage !== null ? `${firm.coverage}% of the model had evidence` : "Coverage unknown"}
@@ -290,7 +290,7 @@ function FirmPageInner({ id }: { id: string }) {
 
             <p className="footnote">
               <ShieldCheck size={16} />
-              AAI is a decision-support tool for TrueGrit Capital and VIMANA. Verify the source before acting. Nothing here
+              Lodestar is a decision-support tool for TrueGrit Capital and VIMANA. Verify the source before acting. Nothing here
               means a firm is for sale or approved for outreach.
             </p>
           </>

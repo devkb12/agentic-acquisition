@@ -1,6 +1,6 @@
-# AAI web app
+# Lodestar
 
-The dashboard for Agentic Acquisition Intelligence. See the repository README's "The web app" section for routes, local setup and deployment.
+Lodestar is the dashboard for Agentic Acquisition Intelligence. See the repository README's "The web app" section for routes, local setup and deployment.
 
 ```bash
 cp .env.example .env.local   # set TRUEGRIT_ACCESS_KEY

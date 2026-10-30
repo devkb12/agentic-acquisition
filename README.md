@@ -30,7 +30,7 @@ Hard gates: firms that are mainly plaintiff-side or criminal are rated Low Fit w
 | `n8n/dashboard-workflow.json` | Dashboard back end: serves the page, the JSON data feed (`/webhook/truegrit-data`) and saves review decisions (`/webhook/truegrit-review`). |
 | `n8n/code-nodes/` | Every Code node's JavaScript as a separate file, for reading and diffs. The JSON files remain the source of truth. |
 | `n8n/dashboard-page-template.html` | The dashboard page template embedded in the n8n "Build Page" node. |
-| `web/` | The redesigned dashboard: a Next.js app with a home page, the review workspace, firm files and a data explorer. See [The web app](#the-web-app). |
+| `web/` | Lodestar, the redesigned dashboard: a Next.js app with a home page, the review workspace, firm files and a data explorer. See [The web app](#the-web-app). |
 | `website/index.html` | The previous single-file dashboard, still deployed on Vercel until the web app replaces it. |
 | `docs/screenshots/` | Screenshots of the previous dashboard. |
 

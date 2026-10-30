@@ -187,7 +187,7 @@ function WorkspaceInner() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo.svg" alt="" width={30} height={30} />
           <span>
-            AAI
+            Lodestar
             <small>BETA</small>
           </span>
         </Link>
@@ -228,7 +228,7 @@ function WorkspaceInner() {
       <div className="main" inert={dialogOpen}>
         <header className="topbar">
           <nav className="crumbs" aria-label="Breadcrumb">
-            <span>AAI</span>
+            <span>Lodestar</span>
             <span className="sep">/</span>
             <span>Workspace</span>
             <span className="sep">/</span>
