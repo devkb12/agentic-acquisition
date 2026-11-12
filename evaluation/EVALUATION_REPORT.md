@@ -2,7 +2,7 @@
 **Agentic Acquisition Intelligence · TrueGrit Capital × VIMANA · ASU MSAIB capstone**
 Team: Dev Bhattacharyya (lead), Dareen Alsaeed, Hana Ryu, Madison Schuler, Jorge Cervantes Franco · Evaluation snapshot: November 11, 2026
 
-> **Bottom line.** The prototype runs end to end on live data: 25 of 25 n8n executions succeeded, including weekly scheduled runs. It has researched **89 real Florida and Georgia law firms**, written **3,345 evidence rows** to Google Sheets, and serves them through a live dashboard. It reliably screens out the wrong firms: 64 of 89 were rejected with a stated reason, including 16 that scored ≥ 50 before a hard gate caught them. Its two biggest weaknesses are **coverage**, since Google Maps discovery is 52% plaintiff/criminal and only 2.4% of discovered firms get researched per run, and **firm size**, with attorney count missing for 91% of firms. Testing also showed that 4 of the 6 "High Fit" firms were mixed-practice or only partly insurance-defense. We changed the scoring rule, re-tested it (34/37 → 37/37 executable tests), and replayed it on the live firms. Unambiguous targets now make up 100% of High Fit firms, up from 33%, and no clear target was lost.
+> **Bottom line.** The prototype runs end to end on live data: 25 of 25 n8n executions succeeded, including weekly scheduled runs. It has researched **89 real Florida and Georgia law firms**, written **3,055 live evidence rows** to Google Sheets, and serves them through a live dashboard. It reliably screens out the wrong firms: 64 of 89 were rejected with a stated reason, including 16 that scored ≥ 50 before a hard gate caught them. Its two biggest weaknesses are **coverage**, since Google Maps discovery is 52% plaintiff/criminal and only 2.4% of discovered firms get researched per run, and **firm size**, with attorney count missing for 91% of firms. Testing also showed that 4 of the 6 "High Fit" firms were mixed-practice or only partly insurance-defense. We changed the scoring rule, re-tested it (34/37 → 37/37 executable tests), and replayed it on the live firms. Unambiguous targets now make up 100% of High Fit firms, up from 33%, and no clear target was lost.
 
 ---
 
@@ -16,7 +16,7 @@ Team: Dev Bhattacharyya (lead), Dareen Alsaeed, Hana Ryu, Madison Schuler, Jorge
 | AI classification + research | OpenAI structured output (practice areas, defense vs plaintiff, civil vs criminal, B2B focus, carriers, size); research agent with a page-fetch tool for High/Moderate firms | workflow nodes `AI Classify Firm`, `Research Agent` |
 | Deterministic scoring | Sponsor keyword scorecard v2.3, 7-factor fit score, hard gates, revenue rule of thumb | `n8n/code-nodes/research/*.js` |
 | Public records | Sunbiz entity lookup (entity found for 34.8% of firms), USAspending awards | `merge-public-records.js` |
-| Storage | Google Sheets: Company_Leads, AI_Analysis, Source_Log (3,345 rows), Review_Queue, Run_Log, Dashboard_Summary; n8n data table `TrueGrit_Firm_Universe` | live feed |
+| Storage | Google Sheets: Company_Leads, AI_Analysis, Source_Log (3,055 live rows), Review_Queue, Run_Log, Dashboard_Summary; n8n data table `TrueGrit_Firm_Universe` | live feed |
 | Review UI | Lodestar dashboard (Next.js on Vercel): ranked table, firm files with evidence, review form → Review_Queue | https://truegrit-dashboard.vercel.app |
 
 ## 2. Test design
