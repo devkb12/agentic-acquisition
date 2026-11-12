@@ -54,9 +54,17 @@ if (r.defense_vs_plaintiff === 'Plaintiff') risks.push('AI assessment: primarily
 if (r.civil_vs_criminal === 'Criminal') risks.push('AI assessment: primarily criminal practice');
 r.potential_risks = risks;
 
-const att = r.attorney_count;
+let att = r.attorney_count;
 const prov = (r.provenance || []).slice();
 const now = new Date().toISOString();
+// Fallback: when the website/AI gave no attorney count, use the Justia listing count as a LOWER BOUND.
+if (!(Number(att) > 0) && Number(r.directory_attorney_count) > 0) {
+  att = Number(r.directory_attorney_count);
+  r.attorney_count = att;
+  r.attorney_count_source = 'Justia directory listings (lower bound)';
+  r.missing_information = (r.missing_information || []).concat(['Attorney count is a lower bound from Justia listings - verify (Florida Bar / GA Bar firm search, firm website)']);
+  prov.push({ field: 'attorney_count', value: String(att), source: 'Justia Lawyer Directory (count of listed attorneys - lower bound)', url: (r.directory_profile_urls || [])[0] || '', evidence_quote: (r.directory_attorneys || []).slice(0, 10).join(', '), status: 'estimated', extracted_at: now });
+} else if (Number(att) > 0) { r.attorney_count_source = r.attorney_count_source || 'Firm website (AI extraction)'; }
 if (att !== null && att !== undefined && att > 0) {
   const lo = att * rpa.low, hi = att * rpa.high;
   const fmt = function (n) { return '$' + (n / 1e6).toFixed(1) + 'M'; };

@@ -1,0 +1,17 @@
+created_at,author,version_name,description
+2026-10-25T21:41:30Z,Dev B,Version 3,(autosave) sample-data pipeline
+2026-10-29T01:46:35Z,Dev B (via MCP),"Discovery via SerpApi, Apify site scraper, richer AI schema","Replace Google Places node (wired to Finnhub key) with SerpApi Google Maps per city x query; turn Fetch Firm Website into Apify Website Content Crawler; add defense/plaintiff, civil/criminal, carriers, office_count to AI classification"
+2026-10-29T01:47:54Z,Dev B (via MCP),"SerpApi parser, scraper text merge, scorecard + public records nodes","Added Insurance Scorecard + Revenue Estimate, Sunbiz Entity Lookup, USAspending Award Lookup, Merge Public Records"
+2026-10-29T01:48:46Z,Dev B (via MCP),"Scorecard in fit score, sponsor size band, new Sheet columns","Updated Merge Classification, Acquisition Fit Score, Shape Company_Leads Row, Shape AI_Analysis Row"
+2026-10-29T01:48:56Z,Dev B (via MCP),Switch to live mode (demo size) for testing,Updated Run Configuration
+2026-10-29T01:50:07Z,Dev B (via MCP),Fix URL parsing in sandbox; rank defense-leaning listings first,Updated Parse Places Results
+2026-10-29T01:57:35Z,Dev B (via MCP),"Auto-fix AI JSON, plaintiff/criminal hard gates, defense-leaning queries","Updated Run Configuration, Classification JSON Schema, Research JSON Schema, Acquisition Fit Score"
+2026-10-29T02:28:39Z,Dev B (via MCP),Wire 4-API discovery block into live pipeline,"SerpApi, Apify Maps, Sunbiz Daily, USAspending -> Merge -> Normalize -> Parse Places Results"
+2026-10-29T02:35:21Z,Dev B (via MCP),Fix Run_Log counts; log per-source discovery counts,"Updated Build Dashboard Data, Shape Run_Log Row"
+2026-10-29T02:35:32Z,Dev B (via MCP),Clear invalid builtInTools field on OpenAI models,Updated OpenAI Classification/Research/Summary models
+2026-10-29T02:43:01Z,Dev B (via MCP),"Full search (10 cities x 3 phrases), 8 firms/state, skip researched firms","Added Read Existing Leads; updated Run Configuration, Parse Places Results, Apify Maps Discovery"
+2026-10-29T03:02:06Z,Dev B (via MCP),Handle Apify 5-run limit; direct-fetch fallback; retry unreadable firms,"Added One Apify Search per City, Direct Homepage Fetch (fallback), Use Fallback Text"
+2026-10-29T03:17:04Z,Dev B (via MCP),Dedicated auto-fix models for JSON schema parsers,"Added OpenAI Fixer Model (classification), OpenAI Fixer Model (research)"
+2026-10-30T05:04:24Z,Dev B (via MCP),Use dashboard search + scoring settings,"Run Configuration reads team-default settings saved from the dashboard (firms per state, states, cities, phrases, weights, preferred/acceptable attorney range, thresholds); preferred-range size curve and optional out-of-range screen"
+2026-10-30T05:11:48Z,Dev B (via MCP),Fix: fit score code at correct parameter path,Updated Acquisition Fit Score
+2026-11-12T00:30:04Z,Dev B (via MCP),Add Justia directory discovery + Firm Universe table,"Sponsor feedback (Nov 11): adds Justia insurance-defense listing pages as a 5th discovery source, directory attorney count as lower-bound fallback, TrueGrit_Firm_Universe data table"

@@ -8,10 +8,11 @@ ASU MSAIB capstone. An n8n research agent that finds Florida and Georgia insuran
 
 ```
 Run Configuration ─► Build Discovery Queries (city × search phrase)
-   ├─ SerpApi (Google Maps)       ┐
-   ├─ Apify Google Maps scraper   │─► Merge ─► Normalize ─► Parse/dedupe (skip firms already in Company_Leads)
-   ├─ Sunbiz Daily (FL registry)  │
-   └─ USAspending.gov             ┘
+   ├─ SerpApi (Google Maps)            ┐
+   ├─ Apify Google Maps scraper        │
+   ├─ Sunbiz Daily (FL registry)       │─► Merge ─► Normalize ─► Parse/dedupe (skip firms already in Company_Leads)
+   ├─ USAspending.gov                  │      └─► Firm Universe data table (every in-scope firm, before the research cap)
+   └─ Justia insurance-defense listings┘   (added Nov 11 after sponsor feedback; also gives a lower-bound attorney count)
 Read firm websites: Apify website-content-crawler (direct homepage fetch as fallback)
    ─► Clean text ─► OpenAI classification (practice, defense vs plaintiff, civil vs criminal, carriers, size)
 Score: insurance keyword scorecard (sponsor criteria v2.3) + revenue estimate (attorneys × $300k–$500k)
@@ -20,19 +21,29 @@ Score: insurance keyword scorecard (sponsor criteria v2.3) + revenue estimate (a
 Sheets: Company_Leads, AI_Analysis, Source_Log, Review_Queue, Run_Log, Dashboard_Summary
 ```
 
-Hard gates: firms that are mainly plaintiff-side or criminal are rated Low Fit whatever their score. The size screen is 10–400 attorneys. Fit weights are provisional until the sponsors confirm a rubric.
+Hard gates: firms that are mainly plaintiff-side or criminal are rated Low Fit whatever their score. High Fit also needs strong insurance-defense evidence and must not be a mixed plaintiff/defense practice (otherwise capped at Moderate with a reviewer flag). The size screen is 10–400 attorneys. Fit weights are provisional until the sponsors confirm a rubric.
+
+## Testing and evaluation
+
+```bash
+node evaluation/tests/run_tests.js       # 37 tests that run the real Code-node JavaScript (normal, boundary, edge, exception, failure, adversarial)
+python3 evaluation/compute_metrics.py    # metrics, baselines and the before/after replay from the live-data snapshots
+```
+
+Results as of Nov 11, 2026: 37/37 tests pass (34/37 before the evaluation-driven scoring fix); 89 live firms researched, 3,345 evidence rows, 25/25 n8n executions succeeded. See [the evaluation report](evaluation/EVALUATION_REPORT.md).
 
 ## Repository layout
 
 | Path | What it is |
 |---|---|
-| `n8n/research-workflow.json` | The main research workflow (56 nodes). Import it into n8n. |
+| `n8n/research-workflow.json` | The main research workflow (62 nodes), exported from the live n8n instance on Nov 11, 2026. Import it into n8n. |
 | `n8n/dashboard-workflow.json` | Dashboard back end: serves the page, the JSON data feed (`/webhook/truegrit-data`) and saves review decisions (`/webhook/truegrit-review`). |
 | `n8n/code-nodes/` | Every Code node's JavaScript as a separate file, for reading and diffs. The JSON files remain the source of truth. |
 | `n8n/dashboard-page-template.html` | The dashboard page template embedded in the n8n "Build Page" node. |
 | `web/` | Lodestar, the redesigned dashboard: a Next.js app with a home page, the review workspace, firm files and a data explorer. See [The web app](#the-web-app). |
 | `website/index.html` | The previous single-file dashboard, still deployed on Vercel until the web app replaces it. |
 | `docs/screenshots/` | Screenshots of the previous dashboard. |
+| `evaluation/` | **Assignment 3 test & evaluation**: [report](evaluation/EVALUATION_REPORT.md), [test set](evaluation/TEST_CASES.md), executable tests, metrics script, live-data snapshots and results. |
 
 ## Setting it up in another n8n account
 
@@ -70,11 +81,11 @@ To deploy on Vercel, set the project's **Root Directory** to `web`, the **Framew
 
 ## Known limits
 
-- Google Maps search returns mostly plaintiff personal-injury firms. The next improvement is to seed discovery from defense-bar directories (FDLA, GDLA, DRI, CLM) or a sponsor benchmark list.
+- Google Maps search returns mostly plaintiff personal-injury firms (52% of researched firms). Justia's insurance-defense directory was added as a source on Nov 11; defense-bar directories (FDLA, GDLA, DRI, CLM) and the Florida Bar firm search are next. Full failure analysis: [evaluation/EVALUATION_REPORT.md](evaluation/EVALUATION_REPORT.md).
 - On Apify's free plan only 5 runs can go at once. Scraper calls are spaced out and retried, and a direct homepage fetch is the fallback.
 - Attorney counts, revenue and size are estimates unless a source verifies them. The dashboard labels every field Verified, Estimated or Missing.
 - The dashboard access key is in `website/index.html` and the n8n workflow files. The web app keeps it in a server environment variable instead. Keep this repository private and share it only with the team.
 
 ## Team
 
-Dev Bhattacharyya, Dareen Alsaeed, Hana Ryu, Madison Schuler. Sponsors: TrueGrit Capital and VIMANA.
+Dev Bhattacharyya, Dareen Alsaeed, Hana Ryu, Madison Schuler, Jorge Cervantes Franco. Sponsors: TrueGrit Capital and VIMANA.

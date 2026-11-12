@@ -52,10 +52,14 @@ places.forEach(function (r) {
     if (existing.found_by.indexOf(r.source) === -1) existing.found_by.push(r.source);
     ['phone', 'address', 'city', 'place_id'].forEach(function (f) { if (!existing[f] && r[f]) existing[f] = r[f]; });
     existing.types = Array.from(new Set(existing.types.concat(r.types || [])));
+    existing.dir_attorneys = Array.from(new Set(existing.dir_attorneys.concat(r.directory_attorneys || [])));
+    existing.dir_urls = Array.from(new Set(existing.dir_urls.concat(r.directory_profile_urls || [])));
+    if (/[(]/.test(existing.company_name) && r.source !== 'Justia Directory') existing.company_name = r.company_name;
     return;
   }
   const f = { company_name: r.company_name, website: site, domain: dom, phone: r.phone, address: r.address, city: r.city, state: r.state, place_id: r.place_id,
-    types: (r.types || []).slice(), rating: r.rating, reviews: r.reviews, query: r.query, found_by: [r.source] };
+    types: (r.types || []).slice(), rating: r.rating, reviews: r.reviews, query: r.query, found_by: [r.source],
+    dir_attorneys: (r.directory_attorneys || []).slice(), dir_urls: (r.directory_profile_urls || []).slice() };
   byKey[dom] = byKey[nk] = f; firms.push(f);
 });
 firms.forEach(function (f) {
@@ -83,12 +87,13 @@ firms.forEach(function (f) {
     if (g.source === 'Sunbiz Daily') sources.push({ field: 'entity_status', value: g.entity_status + ' - ' + g.company_name + ' (' + g.entity_number + ', filed ' + g.file_date + ')', source: 'Sunbiz Daily (discovery feed)', url: 'https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?inquiryType=DocumentNumber&searchTerm=' + encodeURIComponent(g.entity_number), status: 'verified', extracted_at: now });
     else sources.push({ field: 'federal_awards', value: g.company_name + ': $' + Math.round(g.award_amount).toLocaleString('en-US') + ' (' + g.agency + ')', source: 'USAspending (discovery feed)', url: g.recipient_id ? 'https://www.usaspending.gov/recipient/' + g.recipient_id + '/latest' : 'https://www.usaspending.gov/search', status: 'verified', extracted_at: now });
   });
+  if (f.dir_attorneys.length) sources.push({ field: 'directory_attorney_count', value: f.dir_attorneys.length + ' attorney(s) listed under insurance defense: ' + f.dir_attorneys.slice(0, 12).join(', '), source: 'Justia Lawyer Directory', url: f.dir_urls[0] || 'https://www.justia.com/lawyers/insurance-defense', status: 'verified', extracted_at: now });
   const globs = [];
   [f.domain, 'www.' + f.domain].forEach(function (h) { KW.forEach(function (k) { globs.push({ glob: 'https://' + h + '/*' + k + '*' }, { glob: 'https://' + h + '/*' + k + '*/**' }, { glob: 'https://' + h + '/**/*' + k + '*' }); }); });
   out.push({ json: {
     company_name: f.company_name, website: f.website, domain: f.domain, phone: f.phone || '', address: f.address || '', city: f.city || '', state: f.state,
     place_id: f.place_id || '', maps_uri: m, business_status: 'OPERATIONAL', google_category: f.types.join(' | '), google_rating: f.rating, google_reviews: f.reviews,
-    found_by: f.found_by.join(' + '), registry_matches: regHits.map(function (g) { return g.source + ': ' + g.company_name; }),
+    found_by: f.found_by.join(' + '), directory_attorney_count: f.dir_attorneys.length || null, directory_attorneys: f.dir_attorneys, directory_profile_urls: f.dir_urls, registry_matches: regHits.map(function (g) { return g.source + ': ' + g.company_name; }),
     source_urls: [m || 'https://serpapi.com/search.json'], data_mode: 'LIVE', collected_at: now, discovery_query: f.query, sources: sources, _discovery_stats: stats,
     scrape_input: { startUrls: [{ url: f.website }], crawlerType: 'cheerio', maxCrawlDepth: 1, maxCrawlPages: maxPages, maxResults: maxPages,
       includeUrlGlobs: globs, proxyConfiguration: { useApifyProxy: true }, removeCookieWarnings: true, saveMarkdown: false },

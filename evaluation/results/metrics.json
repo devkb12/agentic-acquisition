@@ -1,0 +1,207 @@
+{
+  "n_firms": 89,
+  "fit_distribution": {
+    "High": 6,
+    "Moderate": 1,
+    "Low": 64,
+    "Insufficient": 18
+  },
+  "target_rate_pct": 7.9,
+  "low_fit_reasons": {
+    "plaintiff": 43,
+    "criminal": 3,
+    "not_ins_defense": 18,
+    "": 0
+  },
+  "gate_catches_high_scores": [
+    "felipediezpa.com (score 80)",
+    "stockhamlawgroup.com (score 68)",
+    "leader-law.com (score 64)",
+    "williamspa.com (score 59)",
+    "johnslawgroup.com (score 58)",
+    "olderlundylaw.com (score 57)",
+    "hassonlawgroup.com (score 53)",
+    "clintco.legal (score 53)",
+    "robertjfleming.com (score 53)",
+    "johnstonsmithlaw.com (score 52)",
+    "lawyerandassocinsurance.com (score 52)",
+    "daynathomaslaw.com (score 51)",
+    "wblegal.net (score 50)",
+    "theworkerscompensationlawyer.com (score 50)",
+    "murraylawgroup.com (score 50)",
+    "germainlawgroup.com (score 50)"
+  ],
+  "by_state": {
+    "FL": {
+      "High": 5,
+      "Moderate": 1,
+      "Low": 35,
+      "Insufficient": 6
+    },
+    "GA": {
+      "High": 1,
+      "Moderate": 0,
+      "Low": 29,
+      "Insufficient": 12
+    }
+  },
+  "ai_classification_failed": {
+    "n": 10,
+    "pct": 11.2
+  },
+  "website_unreadable": {
+    "n": 6,
+    "pct": 6.7
+  },
+  "website_pages_scraped_mean": 4.18,
+  "keyword_scorecard_ran": {
+    "n": 81,
+    "pct": 91.0
+  },
+  "registry_entity_found": {
+    "n": 31,
+    "pct": 34.8,
+    "inactive_entities": [
+      "johnslawgroup.com",
+      "adamhillfirm.com",
+      "finmanlawgroup.com"
+    ]
+  },
+  "evidence_rows_per_firm": {
+    "mean": 34.3,
+    "min": 8,
+    "max": 101
+  },
+  "data_confidence": {
+    "High": 42,
+    "Medium": 29,
+    "Low": 18
+  },
+  "attorney_count_status": {
+    "verified": 7,
+    "estimated": 1,
+    "missing": 81
+  },
+  "attorney_count_known_pct": 9.0,
+  "full_live_runs": 7,
+  "funnel_mean_per_run": {
+    "discovered": 662,
+    "duplicates": 279.1,
+    "rejected": 2.3,
+    "droppedOverLimit": 304.6,
+    "processed": 16
+  },
+  "funnel_research_yield_pct": 2.4,
+  "source_mix_mean_per_run": {
+    "serpapi": 600,
+    "apifyMaps": 62,
+    "sunbiz": 10,
+    "usaspending": 25,
+    "registryMatches": 0
+  },
+  "ai_failures_per_run": {
+    "sum": 11,
+    "firms": 112,
+    "pct": 9.8
+  },
+  "runs_completed_with_errors": {
+    "n": 7,
+    "of": 7
+  },
+  "n8n_executions": {
+    "total": 25,
+    "success": 25,
+    "scheduled": 2
+  },
+  "latency_full_run_minutes": {
+    "mean": 8.3,
+    "min": 7.1,
+    "max": 10.5,
+    "n": 7
+  },
+  "latency_seconds_per_researched_firm": 31.0,
+  "baseline_B0_maps_list": {
+    "leads": 89,
+    "true_targets_by_system": 7,
+    "precision_pct": 7.9,
+    "plaintiff_or_criminal_pct": 51.7
+  },
+  "baseline_B1_keyword_only": {
+    "leads": 22,
+    "leads_the_llm_gated_out": 18,
+    "examples_gated": [
+      "felipediezpa.com",
+      "stockhamlawgroup.com",
+      "leader-law.com",
+      "williamspa.com",
+      "johnslawgroup.com",
+      "clintco.legal",
+      "robertjfleming.com",
+      "lawyerandassocinsurance.com"
+    ],
+    "system_targets_missed_by_keywords": [
+      "bhrlegal.com",
+      "jimersonfirm.com",
+      "businesslawjax.com",
+      "neblettlaw.com"
+    ],
+    "agreement_with_system_pct": 18.2
+  },
+  "iter_fallback_fetch": {
+    "change": "Oct 29 03:02 - direct homepage fetch fallback + retry unreadable firms",
+    "insufficient_rate_before_pct": 71.9,
+    "insufficient_rate_after_pct": 22.5,
+    "runs_before": [
+      "184",
+      "185"
+    ],
+    "runs_after": [
+      "186",
+      "207",
+      "269",
+      "341",
+      "392"
+    ]
+  },
+  "iter_json_fixer": {
+    "change": "Oct 29 03:17 - dedicated auto-fix models for the AI JSON output parsers",
+    "ai_failure_rate_before_pct": 6.2,
+    "ai_failure_rate_after_pct": 12.5
+  },
+  "iter_v3_high_fit_cap": {
+    "change": "Nov 11 - High Fit requires insurance-defense factor >= 60% and not a mixed plaintiff/defense practice; low-coverage scores shown unscaled",
+    "high_before": 6,
+    "high_after": 2,
+    "moved_to_moderate": [
+      [
+        "hdlawpartners.com",
+        "mixed plaintiff/defense"
+      ],
+      [
+        "jimersonfirm.com",
+        "partial insurance-defense evidence (35%)"
+      ],
+      [
+        "businesslawjax.com",
+        "partial insurance-defense evidence (25%)"
+      ],
+      [
+        "neblettlaw.com",
+        "mixed plaintiff/defense"
+      ]
+    ],
+    "high_precision_proxy_before_pct": 33.3,
+    "high_precision_proxy_after_pct": 100.0,
+    "clean_targets_lost": [],
+    "insufficient_display_score_mean_before": 82.8,
+    "insufficient_display_score_mean_after": 16.4,
+    "precision_proxy_definition": "share of High Fit firms the AI rated both Defense-side and Strong insurance-defense fit (unambiguous targets)"
+  },
+  "hitl": {
+    "routed_to_review_needs_review": 7,
+    "routed_needs_more_evidence": 18,
+    "auto_screened_out": 64,
+    "review_decisions_recorded": 0,
+    "review_load_pct_of_processed": 7.9
+  }
+}
