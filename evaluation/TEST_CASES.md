@@ -6,7 +6,7 @@ Three layers of tests. Every result is reproducible from this repository.
 |---|---|---|---|
 | **U** Executable unit / integration tests | The real n8n Code-node JavaScript (fit score, keyword scorecard, discovery merge, Justia parser) on controlled inputs | `node evaluation/tests/run_tests.js` | 37 |
 | **L** Live-data cases | Real firms from the 7 full live runs (Oct 29 – Nov 8), expected vs actual system output | `evaluation/data/firm_results_snapshot_2026-11-11.csv` | 17 |
-| **H** HITL, guardrail and security checks | Review routing, escalation, privacy/security controls | Live dashboard + repository inspection | 8 |
+| **H** HITL, guardrail and security checks | Review routing, escalation, privacy/security controls | Live dashboard + repository inspection | 9 |
 
 Categories follow the assignment: **normal, boundary, edge, exception, failure, adversarial**.
 
@@ -66,10 +66,10 @@ Source: firm records served by the live dashboard feed (`/api/feed`, `/api/firms
 | L13 | edge | Johns Law Group (FL) | Sunbiz entity **Inactive**; plaintiff | Low Fit; inactive status visible | Low Fit; entity status shown in firm file | PASS (inactive status is not itself a gate — see limitations) |
 | L14 | boundary | Deming Parker (GA) | 52 attorneys (in band) but plaintiff | Low Fit (gate beats size) | Low Fit | PASS |
 | L15 | normal | Salomon Smith PLLC (FL) | Policyholder-side claims messaging; 2 attorneys | Moderate at most, with flag | Moderate Fit; risk flags policyholder focus | PASS |
-| L16 | failure | 4 fictional SAMPLE firms in the live feed | Leftover demo rows labelled "SAMPLE … (fictional)" | Excluded from live rankings | Shown and ranked at 97 (labelled SAMPLE) | **FAIL — open** |
+| L16 | failure | 4 fictional SAMPLE firms left in Company_Leads | Leftover demo rows labelled "SAMPLE … (fictional)" | Excluded from live rankings and counts | Dashboard hides them by default ("4 sample firms … are left out of these numbers"); still present in the sheet and raw feed | PASS (rows should still be purged) |
 | L17 | exception | Eagle Rock Defense Group (FL) | "Defense" in name; AI classification failed | Not auto-promoted | Insufficient Information | PASS |
 
-Live-case pass rate: v2 **11 / 17** fully passing (L05–L08, L11 score, L16 failing) → v3 replay **16 / 17** (L16 still open).
+Live-case pass rate: v2 **12 / 17** fully passing (L05–L08 and the L11 displayed score failing) → v3 replay **17 / 17**.
 
 ---
 
@@ -85,6 +85,7 @@ Live-case pass rate: v2 **11 / 17** fully passing (L05–L08, L11 score, L16 fai
 | H06 | Reviewer decisions recorded | A decision written from the dashboard lands in Review_Queue | **NOT YET EXERCISED** — 0 decisions recorded |
 | H07 | Secrets server-side | Web app keeps the n8n access key in a server env var | PASS (`web/lib/feed.ts`) |
 | H08 | Secrets not published | No live keys in the public repository | **FAIL** — legacy `website/index.html` contains the dashboard access key; repository is public |
+| H09 | Data store access | Google Sheet readable only by the team | **FAIL** — the TrueGrit sheet opens in "View only" mode without signing in (link-shared to anyone) |
 
 ## Pending tests (need a live run in n8n)
 

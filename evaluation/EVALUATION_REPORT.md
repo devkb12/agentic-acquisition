@@ -25,7 +25,7 @@ See **[TEST_CASES.md](TEST_CASES.md)**. Summary:
 
 - **37 executable tests** run the real Code-node JavaScript with n8n's globals (`node evaluation/tests/run_tests.js`). They cover 7 normal, 10 boundary, 10 edge, 2 exception, 2 failure and 6 adversarial cases. The adversarial cases are plaintiff firms using insurance language, criminal "defense" firms, keyword stuffing, prompt-injection text and mixed-side firms.
 - **17 live-data cases**: real firms from the live runs, with expected vs actual results.
-- **8 HITL, guardrail and security checks**, plus 3 tests still pending a live run.
+- **9 HITL, guardrail and security checks**, plus 3 tests still pending a live run.
 
 ## 3. Metrics and baselines
 
@@ -69,7 +69,7 @@ The keyword baseline is why an LLM is used. Defense vs plaintiff is a matter of 
 ## 4. Results
 
 - **Executable tests:** 34/37 passed on the pre-evaluation version and **37/37 after the fix** (`results/unit_test_results*.csv`).
-- **Live cases:** 11/17 passed on the version that produced the live data, and 16/17 with the fix replayed (L16, sample rows in the live feed, is still open).
+- **Live cases:** 12/17 passed on the version that produced the live data, and 17/17 with the fix replayed.
 - **What works:** hard gates (all plaintiff and criminal adversarial cases passed, live and synthetic), dedupe and skip-researched logic, boundary handling of size and thresholds, safe handling of AI and scraper failures (always sent to "Needs more evidence", never shown as a target), and evidence provenance.
 - **What does not:** see §5. The negative results are reported in full: the High Fit list was 67% contaminated before the fix, the JSON auto-fixer did not reduce AI failures, size data is mostly missing, no human review has been recorded yet, and a secret is exposed.
 
@@ -85,7 +85,7 @@ The keyword baseline is why an LLM is used. Defense vs plaintiff is a matter of 
 | F6 | **Misleading score on low evidence** | 8 firms displayed 82–84 at 20% coverage | Score normalised over the few factors that could be scored | Reviewer could read a no-evidence firm as top-ranked | Show unscaled score below the coverage floor (mean displayed 82.8 → 16.4) | Fixed (Nov 11, v3) |
 | F7 | **Mixed or partial firms rated High** | 4 of 6 High Fit (HD Law Partners #1, Neblett, Jimerson Birr, Murphy & Ellis) | Size/geography/completeness points can push a partial-fit firm over 70 | Reviewer list polluted; mixed-side firms ranked first | High requires practice-fit ≥ 60% and not AI "Both"; capped firms get an explicit flag (tests N02, A05) | Fixed (Nov 11, v3) |
 | F8 | **Registry cross-reference at discovery never matches** | 0 matches in 7 runs | Sunbiz Daily feed returns only 10 recent filings named "LAW FIRM" | Discovery-stage registry data adds nothing | Per-firm Sunbiz lookup (34.8% found) is the useful path | Open: remove or re-query |
-| F9 | **Sample rows in live feed** | 4 fictional firms ranked at 97 | Demo-run rows never purged from Company_Leads | Could mislead a sponsor demo (labelled SAMPLE) | Purge demo rows / filter `sample` in feed | Open |
+| F9 | **Sample rows left in the data** | 4 fictional firms in Company_Leads and the raw feed | Demo-run rows never purged | Low: the dashboard hides them by default and labels them SAMPLE | Purge the demo rows from the sheet | Mitigated in UI; purge open |
 | F10 | **Inactive entities not gated** | 3 firms with Sunbiz status Inactive | Entity status displayed but not scored | Possible dissolved firm in pipeline | Add as a risk flag | Open |
 | F11 | **HITL loop unexercised** | 0 review decisions recorded | Team has not reviewed yet | Review path unvalidated end to end | Review the 7 queued firms (P03) | Open |
 | F12 | **Secret in public repo** | 1 key in `website/index.html` | Legacy single-file dashboard embeds the feed key | Anyone can read feed / post reviews | Rotate key; remove legacy page; make repo private | Open, **highest priority** |
@@ -122,6 +122,7 @@ Every change is a saved version in n8n (`data/workflow_version_history.csv`) and
 - **Public business data only.** Firm websites, Google Maps listings, state registries, USAspending, and Justia attorney directory listings (a professional directory). No personal or consumer data is collected, and no LinkedIn scraping (sponsor asked; it is a paid / terms-restricted source).
 - **Credentials** live in n8n's credential store, never in workflow JSON. The workflow export in this repository was scanned for keys before commit.
 - **Web app** keeps the n8n access key in a server environment variable; the browser never sees it (H07).
+- **Open issue: Google Sheet sharing.** The TrueGrit sheet opens in view-only mode without signing in, so anyone with the link can read every lead and score. Restrict sharing to the team and the n8n service account.
 - **Open issue (F12):** the legacy `website/index.html` still embeds the dashboard access key and the repository is public. Fix: rotate the key in the n8n dashboard workflow, delete the legacy page or replace the key, and make the repository private.
 - **Data minimisation:** attorney names from Justia are stored only to count listings per firm (lower-bound size).
 
@@ -144,11 +145,12 @@ Every change is a saved version in n8n (`data/workflow_version_history.csv`) and
 
 ## 11. Next steps (before the sponsor demo)
 
-1. Rotate the exposed key and make the repository private (F12).
-2. Run the workflow in demo mode to validate Justia (P01) and compare FL firm counts against the 47-firm Maps baseline.
-3. Team review of the 7 queued firms plus 10 random screened-out firms, to get real precision labels (P03, limitation 1).
-4. Purge the 4 SAMPLE rows from Company_Leads (F9).
-5. Florida Bar firm search for attorney counts (F3).
+1. Rotate the exposed key and make the repository private (F12); restrict Google Sheet sharing to the team.
+2. **Publish** the workflow in n8n. The Justia source (I4) and the scoring fix (I5) are saved but unpublished, so the weekly scheduled run still uses the Oct 29 version.
+3. Run the workflow in demo mode to validate Justia (P01) and compare FL firm counts against the 47-firm Maps baseline.
+4. Team review of the 7 queued firms plus 10 random screened-out firms, to get real precision labels (P03, limitation 1).
+5. Purge the 4 SAMPLE rows from Company_Leads (F9).
+6. Florida Bar firm search for attorney counts (F3).
 
 ## Reproduce
 
