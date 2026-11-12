@@ -2,7 +2,7 @@
 
 ASU MSAIB capstone. An n8n research agent that finds Florida and Georgia insurance-defense law firms, reads their websites, checks public records, scores each firm against the sponsor's acquisition criteria, and writes everything to Google Sheets for a person to review. The output is research for a human reviewer. It does not decide to pursue any firm.
 
-**Live dashboard:** https://truegrit-dashboard-devkb11-1823.vercel.app
+**Live dashboard:** https://truegrit-dashboard.vercel.app
 
 ## How it works
 
@@ -84,7 +84,7 @@ To deploy on Vercel, set the project's **Root Directory** to `web`, the **Framew
 - Google Maps search returns mostly plaintiff personal-injury firms (52% of researched firms). Justia's insurance-defense directory was added as a source on Nov 11; defense-bar directories (FDLA, GDLA, DRI, CLM) and the Florida Bar firm search are next. Full failure analysis: [evaluation/EVALUATION_REPORT.md](evaluation/EVALUATION_REPORT.md).
 - On Apify's free plan only 5 runs can go at once. Scraper calls are spaced out and retried, and a direct homepage fetch is the fallback.
 - Attorney counts, revenue and size are estimates unless a source verifies them. The dashboard labels every field Verified, Estimated or Missing.
-- The dashboard access key is in `website/index.html` and the n8n workflow files. The web app keeps it in a server environment variable instead. Keep this repository private and share it only with the team.
+- The dashboard access key was rotated on Nov 11, 2026 after the old one was found in this public repository. Files here now hold the placeholder `__ACCESS_KEY__`; the live key exists only in n8n and in the Vercel `TRUEGRIT_ACCESS_KEY` environment variable. The legacy single-file dashboard (`website/`) no longer works without editing in a key, and the web app (`web/`) replaces it.
 
 ## Team
 
