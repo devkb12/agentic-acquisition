@@ -11,9 +11,19 @@ function stateFrom(addr, st) {
 }
 function cityFrom(addr) { const p = String(addr || '').split(','); return p.length >= 3 ? p[p.length - 2].trim() : ''; }
 const out = [];
-const counts = { serpapi: 0, apify: 0, sunbiz: 0, usaspending: 0, errors: 0 };
+const counts = { serpapi: 0, apify: 0, sunbiz: 0, usaspending: 0, justia: 0, errors: 0 };
 for (const item of $input.all()) {
   const d = item.json || {};
+  if (d.directory_source === 'Justia') {
+    if (d._justia_stats) counts.justia_pages_ok = d._justia_stats.pages_ok, counts.justia_pages_failed = d._justia_stats.pages_failed, counts.justia_attorneys = d._justia_stats.unique_attorneys;
+    if (d._stats_only) continue;
+    counts.justia++;
+    out.push({ kind: 'place', source: 'Justia Directory', company_name: d.company_name || '', address: d.address || '', city: d.city || cityFrom(d.address), state: d.state || stateFrom(d.address),
+      phone: d.phone || '', website: d.website || '', types: ['Law firm', 'Insurance defense (Justia practice-area listing)'], rating: null, reviews: null, place_id: '', open_state: '',
+      query: 'Justia ' + (d.practice_area || '') + ' / ' + (d.state || ''), directory_attorney_count: d.directory_attorney_count || 0,
+      directory_attorneys: d.directory_attorneys || [], directory_profile_urls: d.directory_profile_urls || [] });
+    continue;
+  }
   if (d.error && !d.local_results && !d.filings && !d.results && !d.title) { counts.errors++; continue; }
   if (Array.isArray(d.local_results)) {
     const q = (d.search_parameters && d.search_parameters.q) || '';

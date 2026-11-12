@@ -26,13 +26,13 @@
               "id": "c2",
               "name": "demo_mode",
               "type": "boolean",
-              "value": false
+              "value": "={{ (JSON.parse($json.value_json || '{}').run || {}).demo_mode === true }}"
             },
             {
               "id": "c3",
               "name": "limit_per_state",
               "type": "number",
-              "value": 8
+              "value": "={{ (JSON.parse($json.value_json || '{}').run || {}).limit_per_state || 8 }}"
             },
             {
               "id": "c4",
@@ -44,13 +44,13 @@
               "id": "c5",
               "name": "states",
               "type": "array",
-              "value": "={{ [\"FL\",\"GA\"] }}"
+              "value": "={{ (JSON.parse($json.value_json || '{}').run || {}).states || [\"FL\",\"GA\"] }}"
             },
             {
               "id": "c6",
               "name": "search_queries",
               "type": "array",
-              "value": "={{ [\"insurance defense law firm\",\"insurance defense litigation attorneys\",\"civil defense law firm\"] }}"
+              "value": "={{ (JSON.parse($json.value_json || '{}').run || {}).search_queries || [\"insurance defense law firm\",\"insurance defense litigation attorneys\",\"civil defense law firm\"] }}"
             },
             {
               "id": "c7",
@@ -68,13 +68,13 @@
               "id": "c9",
               "name": "weights",
               "type": "object",
-              "value": "={{ { insurance_defense: 30, geography: 15, b2b: 15, size: 15, history: 10, strategic: 10, completeness: 5 } }}"
+              "value": "={{ Object.assign({ insurance_defense: 30, geography: 15, b2b: 15, size: 15, history: 10, strategic: 10, completeness: 5 }, (JSON.parse($json.value_json || '{}').scoring || {}).weights || {}) }}"
             },
             {
               "id": "c10",
               "name": "thresholds",
               "type": "object",
-              "value": "={{ { high: 70, moderate: 45, min_coverage: 40 } }}"
+              "value": "={{ Object.assign({ high: 70, moderate: 45, min_coverage: 40 }, (JSON.parse($json.value_json || '{}').scoring || {}).thresholds || {}) }}"
             },
             {
               "id": "c11",
@@ -86,19 +86,19 @@
               "id": "c12",
               "name": "discovery_locations",
               "type": "object",
-              "value": "={{ { FL: [\"Miami\",\"Tampa\",\"Orlando\",\"Jacksonville\",\"Fort Lauderdale\",\"Tallahassee\"], GA: [\"Atlanta\",\"Savannah\",\"Augusta\",\"Macon\"] } }}"
+              "value": "={{ (JSON.parse($json.value_json || '{}').run || {}).discovery_locations || { FL: [\"Miami\",\"Tampa\",\"Orlando\",\"Jacksonville\",\"Fort Lauderdale\",\"Tallahassee\"], GA: [\"Atlanta\",\"Savannah\",\"Augusta\",\"Macon\"] } }}"
             },
             {
               "id": "c13",
               "name": "scrape_max_pages",
               "type": "number",
-              "value": 8
+              "value": "={{ (JSON.parse($json.value_json || '{}').run || {}).scrape_max_pages || 8 }}"
             },
             {
               "id": "c14",
               "name": "scorecard_bands",
               "type": "object",
-              "value": "={{ { strong: 15, moderate: 5 } }}"
+              "value": "={{ Object.assign({ strong: 15, moderate: 5 }, (JSON.parse($json.value_json || '{}').scoring || {}).insurance_bands || {}) }}"
             },
             {
               "id": "c15",
@@ -110,7 +110,31 @@
               "id": "c16",
               "name": "size_band_attorneys",
               "type": "object",
-              "value": "={{ { min: 10, max: 400 } }}"
+              "value": "={{ { min: ((JSON.parse($json.value_json || '{}').scoring || {}).size || {}).acc_min ?? 10, max: ((JSON.parse($json.value_json || '{}').scoring || {}).size || {}).acc_max ?? 400 } }}"
+            },
+            {
+              "id": "c17",
+              "name": "size_pref",
+              "type": "object",
+              "value": "={{ Object.assign({ acc_min: 10, acc_max: 400, pref_min: 10, pref_max: 400, partial: 0.6, outside: 0.3, exclude_outside: false }, (JSON.parse($json.value_json || '{}').scoring || {}).size || {}) }}"
+            },
+            {
+              "id": "c18",
+              "name": "history_pref",
+              "type": "object",
+              "value": "={{ Object.assign({ pref_min: 10, acc_min: 5, partial: 0.5, outside: 0.2 }, (JSON.parse($json.value_json || '{}').scoring || {}).history || {}) }}"
+            },
+            {
+              "id": "c19",
+              "name": "skip_researched",
+              "type": "boolean",
+              "value": "={{ (JSON.parse($json.value_json || '{}').run || {}).skip_researched !== false }}"
+            },
+            {
+              "id": "c20",
+              "name": "profile_name",
+              "type": "string",
+              "value": "={{ JSON.parse($json.value_json || '{}').profile_name || 'Default (provisional)' }}"
             }
           ]
         },
@@ -123,7 +147,8 @@
       "position": [
         272,
         320
-      ]
+      ],
+      "executeOnce": true
     },
     {
       "parameters": {
@@ -187,8 +212,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2512,
-        320
+        3168,
+        160
       ]
     },
     {
@@ -206,14 +231,14 @@
     },
     {
       "parameters": {
-        "jsCode": "// Combine the normalized discovery records into candidate firms:\n// keep in-scope law firms with a website, merge the same firm found by SerpApi and Apify, cross-reference\n// Sunbiz Daily / USAspending records by name, rank defense-leaning listings first, cap per state,\n// and prepare the Apify website-scraper input.\nconst cfg = $('Run Configuration').first().json;\nconst limit = cfg.demo_mode ? cfg.demo_limit_per_state : cfg.limit_per_state;\nconst maxPages = cfg.scrape_max_pages || 8;\nconst states = cfg.states || ['FL', 'GA'];\nconst now = new Date().toISOString();\nconst LAWY = /(attorney|lawyer|law firm|legal)/i;\nconst DEFENSE = /(insurance defense|defense|insurance attorney|insurance)/i;\nconst OFF = /(personal injury|criminal|family law|immigration|divorce|bankruptcy|estate planning|wrongful death|accident)/i;\nconst KW = ['practice', 'attorney', 'lawyer', 'people', 'professional', 'team', 'about', 'service', 'industr', 'location', 'office', 'firm', 'history', 'client'];\nconst SUFFIX = /\\b(llp|llc|pllc|pa|pc|pl|chartered|inc|corp|corporation|law firm|law group|law offices?|attorneys at law|the|of)\\b/g;\nfunction host(u) { return String(u || '').toLowerCase().trim().replace(/^[a-z]+:[/][/]/, '').replace(/^www[.]/, '').split('/')[0].split('?')[0].split('#')[0].split(':')[0]; }\nfunction core(n) { return String(n || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]/g, ' ').replace(SUFFIX, ' ').replace(/ +/g, ' ').trim(); }\nfunction cleanUrl(u) { const m = String(u || '').trim().match(/^(https?):[/][/]([^/?#]+)/i); return m ? m[1].toLowerCase() + '://' + m[2].toLowerCase() + '/' : ''; }\nfunction mapsUrl(pid) { return pid ? 'https://www.google.com/maps/place/?q=place_id:' + pid : ''; }\n\nconst all = $('Normalize \u2013 Company Discovery Results').all().map(function (i) { return i.json; });\n// Firms already in Company_Leads are skipped so each run researches new firms (set skip_researched = false to re-research).\nconst skipOld = cfg.skip_researched !== false;\nconst seenBefore = {};\n// ...except firms that ended 'Insufficient Information' because their website could not be read - those are retried.\nif (skipOld) $input.all().forEach(function (i) {\n  const j = i.json || {};\n  const retry = j.final_fit === 'Insufficient Information' && !(Number(j.pages_scraped) > 0);\n  if (retry) return;\n  if (j.domain) seenBefore[String(j.domain).toLowerCase()] = true;\n  if (j.company_id) seenBefore[String(j.company_id).toLowerCase()] = true;\n});\nconst places = all.filter(function (r) { return r.kind === 'place'; });\nconst registry = all.filter(function (r) { return r.kind === 'registry'; });\nconst stats = Object.assign({ place_results: places.length, registry_records: registry.length, out_of_scope_state: 0, not_law: 0, no_website: 0, closed: 0, merged_duplicates: 0, over_limit: 0, registry_matched: 0, already_researched: 0 }, (all[0] && all[0]._source_counts) || {});\n\nconst byKey = {}, firms = [];\nplaces.forEach(function (r) {\n  if (states.indexOf(r.state) === -1) { stats.out_of_scope_state++; return; }\n  const types = (r.types || []).join(' | ');\n  if (!LAWY.test(types) && !LAWY.test(r.company_name)) { stats.not_law++; return; }\n  if (/permanently closed/i.test(r.open_state || '')) { stats.closed++; return; }\n  const site = cleanUrl(r.website);\n  if (!site) { stats.no_website++; return; }\n  const dom = host(site), nk = core(r.company_name) + '|' + r.state;\n  if (seenBefore[dom]) { stats.already_researched++; return; }\n  const existing = byKey[dom] || byKey[nk];\n  if (existing) {\n    stats.merged_duplicates++;\n    if (existing.found_by.indexOf(r.source) === -1) existing.found_by.push(r.source);\n    ['phone', 'address', 'city', 'place_id'].forEach(function (f) { if (!existing[f] && r[f]) existing[f] = r[f]; });\n    existing.types = Array.from(new Set(existing.types.concat(r.types || [])));\n    return;\n  }\n  const f = { company_name: r.company_name, website: site, domain: dom, phone: r.phone, address: r.address, city: r.city, state: r.state, place_id: r.place_id,\n    types: (r.types || []).slice(), rating: r.rating, reviews: r.reviews, query: r.query, found_by: [r.source] };\n  byKey[dom] = byKey[nk] = f; firms.push(f);\n});\nfirms.forEach(function (f) {\n  const hay = f.company_name + ' ' + f.types.join(' ');\n  f.prio = (OFF.test(f.types[0] || '') || OFF.test(f.company_name)) ? 2 : DEFENSE.test(hay) ? 0 : 1;\n  if (f.found_by.length > 1) f.prio -= 0.5;   // found by both map sources\n});\nfirms.sort(function (a, b) { return a.prio - b.prio; });\n\nconst perState = {}, out = [];\nfirms.forEach(function (f) {\n  perState[f.state] = (perState[f.state] || 0) + 1;\n  if (perState[f.state] > limit) { stats.over_limit++; return; }\n  const target = core(f.company_name);\n  const regHits = registry.filter(function (g) { const c = core(g.company_name); return target.length > 4 && (c === target || (target.length > 8 && (c.indexOf(target) === 0 || target.indexOf(c) === 0))); });\n  if (regHits.length) stats.registry_matched++;\n  const m = mapsUrl(f.place_id);\n  const sources = [\n    { field: 'company_name', value: f.company_name, source: f.found_by.join(' + '), url: m, status: 'verified', extracted_at: now },\n    { field: 'address', value: f.address || null, source: f.found_by[0], url: m, status: f.address ? 'verified' : 'unknown', extracted_at: now },\n    { field: 'phone', value: f.phone || null, source: f.found_by[0], url: m, status: f.phone ? 'verified' : 'unknown', extracted_at: now },\n    { field: 'website', value: f.website, source: f.found_by[0], url: m, status: 'verified', extracted_at: now },\n  ];\n  regHits.forEach(function (g) {\n    if (g.source === 'Sunbiz Daily') sources.push({ field: 'entity_status', value: g.entity_status + ' - ' + g.company_name + ' (' + g.entity_number + ', filed ' + g.file_date + ')', source: 'Sunbiz Daily (discovery feed)', url: 'https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?inquiryType=DocumentNumber&searchTerm=' + encodeURIComponent(g.entity_number), status: 'verified', extracted_at: now });\n    else sources.push({ field: 'federal_awards', value: g.company_name + ': $' + Math.round(g.award_amount).toLocaleString('en-US') + ' (' + g.agency + ')', source: 'USAspending (discovery feed)', url: g.recipient_id ? 'https://www.usaspending.gov/recipient/' + g.recipient_id + '/latest' : 'https://www.usaspending.gov/search', status: 'verified', extracted_at: now });\n  });\n  const globs = [];\n  [f.domain, 'www.' + f.domain].forEach(function (h) { KW.forEach(function (k) { globs.push({ glob: 'https://' + h + '/*' + k + '*' }, { glob: 'https://' + h + '/*' + k + '*/**' }, { glob: 'https://' + h + '/**/*' + k + '*' }); }); });\n  out.push({ json: {\n    company_name: f.company_name, website: f.website, domain: f.domain, phone: f.phone || '', address: f.address || '', city: f.city || '', state: f.state,\n    place_id: f.place_id || '', maps_uri: m, business_status: 'OPERATIONAL', google_category: f.types.join(' | '), google_rating: f.rating, google_reviews: f.reviews,\n    found_by: f.found_by.join(' + '), registry_matches: regHits.map(function (g) { return g.source + ': ' + g.company_name; }),\n    source_urls: [m || 'https://serpapi.com/search.json'], data_mode: 'LIVE', collected_at: now, discovery_query: f.query, sources: sources, _discovery_stats: stats,\n    scrape_input: { startUrls: [{ url: f.website }], crawlerType: 'cheerio', maxCrawlDepth: 1, maxCrawlPages: maxPages, maxResults: maxPages,\n      includeUrlGlobs: globs, proxyConfiguration: { useApifyProxy: true }, removeCookieWarnings: true, saveMarkdown: false },\n  } });\n});\nreturn out;\n"
+        "jsCode": "// Combine the normalized discovery records into candidate firms:\n// keep in-scope law firms with a website, merge the same firm found by SerpApi and Apify, cross-reference\n// Sunbiz Daily / USAspending records by name, rank defense-leaning listings first, cap per state,\n// and prepare the Apify website-scraper input.\nconst cfg = $('Run Configuration').first().json;\nconst limit = cfg.demo_mode ? cfg.demo_limit_per_state : cfg.limit_per_state;\nconst maxPages = cfg.scrape_max_pages || 8;\nconst states = cfg.states || ['FL', 'GA'];\nconst now = new Date().toISOString();\nconst LAWY = /(attorney|lawyer|law firm|legal)/i;\nconst DEFENSE = /(insurance defense|defense|insurance attorney|insurance)/i;\nconst OFF = /(personal injury|criminal|family law|immigration|divorce|bankruptcy|estate planning|wrongful death|accident)/i;\nconst KW = ['practice', 'attorney', 'lawyer', 'people', 'professional', 'team', 'about', 'service', 'industr', 'location', 'office', 'firm', 'history', 'client'];\nconst SUFFIX = /\\b(llp|llc|pllc|pa|pc|pl|chartered|inc|corp|corporation|law firm|law group|law offices?|attorneys at law|the|of)\\b/g;\nfunction host(u) { return String(u || '').toLowerCase().trim().replace(/^[a-z]+:[/][/]/, '').replace(/^www[.]/, '').split('/')[0].split('?')[0].split('#')[0].split(':')[0]; }\nfunction core(n) { return String(n || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]/g, ' ').replace(SUFFIX, ' ').replace(/ +/g, ' ').trim(); }\nfunction cleanUrl(u) { const m = String(u || '').trim().match(/^(https?):[/][/]([^/?#]+)/i); return m ? m[1].toLowerCase() + '://' + m[2].toLowerCase() + '/' : ''; }\nfunction mapsUrl(pid) { return pid ? 'https://www.google.com/maps/place/?q=place_id:' + pid : ''; }\n\nconst all = $('Normalize – Company Discovery Results').all().map(function (i) { return i.json; });\n// Firms already in Company_Leads are skipped so each run researches new firms (set skip_researched = false to re-research).\nconst skipOld = cfg.skip_researched !== false;\nconst seenBefore = {};\n// ...except firms that ended 'Insufficient Information' because their website could not be read - those are retried.\nif (skipOld) $input.all().forEach(function (i) {\n  const j = i.json || {};\n  const retry = j.final_fit === 'Insufficient Information' && !(Number(j.pages_scraped) > 0);\n  if (retry) return;\n  if (j.domain) seenBefore[String(j.domain).toLowerCase()] = true;\n  if (j.company_id) seenBefore[String(j.company_id).toLowerCase()] = true;\n});\nconst places = all.filter(function (r) { return r.kind === 'place'; });\nconst registry = all.filter(function (r) { return r.kind === 'registry'; });\nconst stats = Object.assign({ place_results: places.length, registry_records: registry.length, out_of_scope_state: 0, not_law: 0, no_website: 0, closed: 0, merged_duplicates: 0, over_limit: 0, registry_matched: 0, already_researched: 0 }, (all[0] && all[0]._source_counts) || {});\n\nconst byKey = {}, firms = [];\nplaces.forEach(function (r) {\n  if (states.indexOf(r.state) === -1) { stats.out_of_scope_state++; return; }\n  const types = (r.types || []).join(' | ');\n  if (!LAWY.test(types) && !LAWY.test(r.company_name)) { stats.not_law++; return; }\n  if (/permanently closed/i.test(r.open_state || '')) { stats.closed++; return; }\n  const site = cleanUrl(r.website);\n  if (!site) { stats.no_website++; return; }\n  const dom = host(site), nk = core(r.company_name) + '|' + r.state;\n  if (seenBefore[dom]) { stats.already_researched++; return; }\n  const existing = byKey[dom] || byKey[nk];\n  if (existing) {\n    stats.merged_duplicates++;\n    if (existing.found_by.indexOf(r.source) === -1) existing.found_by.push(r.source);\n    ['phone', 'address', 'city', 'place_id'].forEach(function (f) { if (!existing[f] && r[f]) existing[f] = r[f]; });\n    existing.types = Array.from(new Set(existing.types.concat(r.types || [])));\n    existing.dir_attorneys = Array.from(new Set(existing.dir_attorneys.concat(r.directory_attorneys || [])));\n    existing.dir_urls = Array.from(new Set(existing.dir_urls.concat(r.directory_profile_urls || [])));\n    if (/[(]/.test(existing.company_name) && r.source !== 'Justia Directory') existing.company_name = r.company_name;\n    return;\n  }\n  const f = { company_name: r.company_name, website: site, domain: dom, phone: r.phone, address: r.address, city: r.city, state: r.state, place_id: r.place_id,\n    types: (r.types || []).slice(), rating: r.rating, reviews: r.reviews, query: r.query, found_by: [r.source],\n    dir_attorneys: (r.directory_attorneys || []).slice(), dir_urls: (r.directory_profile_urls || []).slice() };\n  byKey[dom] = byKey[nk] = f; firms.push(f);\n});\nfirms.forEach(function (f) {\n  const hay = f.company_name + ' ' + f.types.join(' ');\n  f.prio = (OFF.test(f.types[0] || '') || OFF.test(f.company_name)) ? 2 : DEFENSE.test(hay) ? 0 : 1;\n  if (f.found_by.length > 1) f.prio -= 0.5;   // found by both map sources\n});\nfirms.sort(function (a, b) { return a.prio - b.prio; });\n\nconst perState = {}, out = [];\nfirms.forEach(function (f) {\n  perState[f.state] = (perState[f.state] || 0) + 1;\n  if (perState[f.state] > limit) { stats.over_limit++; return; }\n  const target = core(f.company_name);\n  const regHits = registry.filter(function (g) { const c = core(g.company_name); return target.length > 4 && (c === target || (target.length > 8 && (c.indexOf(target) === 0 || target.indexOf(c) === 0))); });\n  if (regHits.length) stats.registry_matched++;\n  const m = mapsUrl(f.place_id);\n  const sources = [\n    { field: 'company_name', value: f.company_name, source: f.found_by.join(' + '), url: m, status: 'verified', extracted_at: now },\n    { field: 'address', value: f.address || null, source: f.found_by[0], url: m, status: f.address ? 'verified' : 'unknown', extracted_at: now },\n    { field: 'phone', value: f.phone || null, source: f.found_by[0], url: m, status: f.phone ? 'verified' : 'unknown', extracted_at: now },\n    { field: 'website', value: f.website, source: f.found_by[0], url: m, status: 'verified', extracted_at: now },\n  ];\n  regHits.forEach(function (g) {\n    if (g.source === 'Sunbiz Daily') sources.push({ field: 'entity_status', value: g.entity_status + ' - ' + g.company_name + ' (' + g.entity_number + ', filed ' + g.file_date + ')', source: 'Sunbiz Daily (discovery feed)', url: 'https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?inquiryType=DocumentNumber&searchTerm=' + encodeURIComponent(g.entity_number), status: 'verified', extracted_at: now });\n    else sources.push({ field: 'federal_awards', value: g.company_name + ': $' + Math.round(g.award_amount).toLocaleString('en-US') + ' (' + g.agency + ')', source: 'USAspending (discovery feed)', url: g.recipient_id ? 'https://www.usaspending.gov/recipient/' + g.recipient_id + '/latest' : 'https://www.usaspending.gov/search', status: 'verified', extracted_at: now });\n  });\n  if (f.dir_attorneys.length) sources.push({ field: 'directory_attorney_count', value: f.dir_attorneys.length + ' attorney(s) listed under insurance defense: ' + f.dir_attorneys.slice(0, 12).join(', '), source: 'Justia Lawyer Directory', url: f.dir_urls[0] || 'https://www.justia.com/lawyers/insurance-defense', status: 'verified', extracted_at: now });\n  const globs = [];\n  [f.domain, 'www.' + f.domain].forEach(function (h) { KW.forEach(function (k) { globs.push({ glob: 'https://' + h + '/*' + k + '*' }, { glob: 'https://' + h + '/*' + k + '*/**' }, { glob: 'https://' + h + '/**/*' + k + '*' }); }); });\n  out.push({ json: {\n    company_name: f.company_name, website: f.website, domain: f.domain, phone: f.phone || '', address: f.address || '', city: f.city || '', state: f.state,\n    place_id: f.place_id || '', maps_uri: m, business_status: 'OPERATIONAL', google_category: f.types.join(' | '), google_rating: f.rating, google_reviews: f.reviews,\n    found_by: f.found_by.join(' + '), directory_attorney_count: f.dir_attorneys.length || null, directory_attorneys: f.dir_attorneys, directory_profile_urls: f.dir_urls, registry_matches: regHits.map(function (g) { return g.source + ': ' + g.company_name; }),\n    source_urls: [m || 'https://serpapi.com/search.json'], data_mode: 'LIVE', collected_at: now, discovery_query: f.query, sources: sources, _discovery_stats: stats,\n    scrape_input: { startUrls: [{ url: f.website }], crawlerType: 'cheerio', maxCrawlDepth: 1, maxCrawlPages: maxPages, maxResults: maxPages,\n      includeUrlGlobs: globs, proxyConfiguration: { useApifyProxy: true }, removeCookieWarnings: true, saveMarkdown: false },\n  } });\n});\nreturn out;\n"
       },
       "id": "234cab68-b50f-49a7-ab17-17533dafe2ac",
       "name": "Parse Places Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1840,
+        2192,
         416
       ]
     },
@@ -241,7 +266,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        2064,
+        2416,
         416
       ],
       "retryOnFail": true,
@@ -265,7 +290,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2288,
+        2640,
         416
       ]
     },
@@ -291,7 +316,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        2832,
+        3456,
         224
       ],
       "retryOnFail": true,
@@ -317,7 +342,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        2816,
+        3440,
         512
       ],
       "credentials": {
@@ -542,7 +567,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        3008,
+        3632,
         512
       ]
     },
@@ -555,7 +580,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3216,
+        3840,
         288
       ]
     },
@@ -597,7 +622,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        4048,
+        4672,
         752
       ]
     },
@@ -620,7 +645,7 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        3888,
+        4512,
         48
       ],
       "onError": "continueRegularOutput"
@@ -643,7 +668,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        3824,
+        4448,
         272
       ],
       "credentials": {
@@ -684,7 +709,7 @@
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.5,
       "position": [
-        3952,
+        4576,
         272
       ]
     },
@@ -801,7 +826,7 @@
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
       "typeVersion": 1.3,
       "position": [
-        4080,
+        4704,
         272
       ]
     },
@@ -814,7 +839,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4288,
+        4912,
         48
       ]
     },
@@ -825,21 +850,21 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        4608,
+        5232,
         608
       ]
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const cfg = $('Run Configuration').first().json;\nconst W = cfg.weights, T = cfg.thresholds;\nconst r = $json;\nconst ent = r.enrichment || {};\nconst comps = [];\nfunction round1(x) { return Math.round(x * 10) / 10; }\nfunction add(key, label, max, pts, note) { comps.push({ key: key, label: label, max: max, points: pts === null ? null : round1(pts), scored: pts !== null, note: note }); }\n\n// 1. Insurance-defense practice fit (AI, evidence-grounded)\nconst idf = r.insurance_defense_fit;\nconst aiF = idf === 'Strong' ? 1 : idf === 'Partial' ? 0.5 : idf === 'None' ? 0 : null;\nconst SB = cfg.scorecard_bands || { strong: 15, moderate: 5 };\nconst sc = r.insurance_score;\nconst scF = (sc === null || sc === undefined) ? null : sc >= SB.strong ? 1 : sc >= SB.moderate ? 0.6 : sc >= 0 ? 0.2 : 0;\nconst insF = aiF === null ? scF : scF === null ? aiF : (aiF + scF) / 2;\nadd('insurance_defense', 'Insurance-defense practice fit', W.insurance_defense, insF === null ? null : W.insurance_defense * insF,\n  'AI assessment: ' + idf + '; keyword scorecard: ' + (sc === null || sc === undefined ? 'n/a' : sc + ' (' + r.insurance_band + ')'));\n// 2. Geography\nconst geo = (r.state === 'FL' || r.state === 'GA');\nadd('geography', 'Florida/Georgia geographic fit', W.geography, geo ? W.geography : 0, 'State: ' + r.state);\n// 3. B2B focus\nconst b = r.b2b_focus;\nadd('b2b', 'B2B client focus', W.b2b, b === 'Primarily B2B/Insurers' ? W.b2b : b === 'Mixed' ? W.b2b * 0.5 : b === 'Primarily Consumer' ? 0 : null, 'AI assessment: ' + b);\n// 4. Size (attorney count; revenue is not required)\nconst att = r.attorney_count;\nlet szf = null;\nconst SZ = cfg.size_band_attorneys || { min: 10, max: 400 };\nif (att !== null && att !== undefined) szf = (att >= SZ.min && att <= SZ.max) ? 1 : (att >= 5 && att < SZ.min) ? 0.5 : att > SZ.max ? 0.4 : 0.2;\nadd('size', 'Firm size and revenue suitability', W.size, szf === null ? null : W.size * szf, att === null || att === undefined ? 'Attorney count unknown' : 'Attorneys: ' + att);\n// 5. Operating history\nconst yrs = r.years_in_operation;\nadd('history', 'Operating history', W.history, (yrs === null || yrs === undefined) ? null : W.history * (yrs >= 10 ? 1 : yrs >= 5 ? 0.5 : 0.2),\n  (yrs === null || yrs === undefined) ? 'Year founded unknown' : 'Years in operation: ' + yrs);\n// 6. Evidence-backed strategic / succession signals (only signals that carry a source URL and a quote)\nconst sigs = (ent.evidence_backed_signals || []).filter(function (s) { return s && s.source_url && s.evidence_quote; });\nadd('strategic', 'Evidence-backed strategic or succession signals', W.strategic, sigs.length >= 2 ? W.strategic : sigs.length === 1 ? W.strategic * 0.5 : null,\n  sigs.length ? sigs.length + ' sourced signal(s)' : 'No sourced signals found (not treated as negative)');\n// 7. Data completeness and reliability\nconst checks = [r.website, r.phone, r.address, r.year_founded, r.attorney_count, r.employee_count, r.revenue,\n  (r.leadership || []).length, (r.offices || []).length, (r.practice_areas || []).length, r.organization_type];\nconst have = checks.filter(function (v) { return v !== null && v !== undefined && v !== '' && v !== 0; }).length;\nconst share = have / checks.length;\nadd('completeness', 'Data completeness and reliability', W.completeness, W.completeness * share * (r.data_mode === 'LIVE' ? 1 : 0.5), have + ' of ' + checks.length + ' key fields known');\n\nconst totalPossible = comps.reduce(function (s, c) { return s + c.max; }, 0);\nconst scored = comps.filter(function (c) { return c.scored; });\nconst observed = round1(scored.reduce(function (s, c) { return s + c.points; }, 0));\nconst maxSupported = round1(scored.reduce(function (s, c) { return s + c.max; }, 0));\nconst coveragePct = Math.round(maxSupported / totalPossible * 100);\nconst normalized = maxSupported > 0 ? Math.round(observed / maxSupported * 100) : null;\n\n// Classification with hard gates\nconst risks = [];\nlet fit;\nif (r.classification_error) { fit = 'Insufficient Information'; risks.push('AI classification failed'); }\nelse if (r.defense_vs_plaintiff === 'Plaintiff') { fit = 'Low Fit'; risks.push('Disqualifying: predominantly plaintiff-side per website evidence (sponsor criterion: defense, not plaintiff)'); }\nelse if (r.civil_vs_criminal === 'Criminal') { fit = 'Low Fit'; risks.push('Disqualifying: predominantly criminal practice (sponsor criterion: civil, not criminal)'); }\nelse if (idf === 'None' || r.target_classification === 'Low Fit') { fit = 'Low Fit'; risks.push('Disqualifying: not an insurance-defense / B2B practice per evidence'); }\nelse if (coveragePct < T.min_coverage || normalized === null) { fit = 'Insufficient Information'; }\nelse if (normalized >= T.high) fit = 'High Fit';\nelse if (normalized >= T.moderate) fit = 'Moderate Fit';\nelse fit = 'Low Fit';\n\nconst conf = r.confidence_score || 0;\nconst dataConfidence = (r.data_mode !== 'LIVE') ? 'Low (sample/demo data - not verified)' : (coveragePct >= 75 && conf >= 0.7) ? 'High' : (coveragePct >= 50 && conf >= 0.5) ? 'Medium' : 'Low';\n\nconst positives = [];\nscored.forEach(function (c) { if (c.points >= c.max * 0.75 && c.max > 0) positives.push(c.label + ' (' + c.points + '/' + c.max + '): ' + c.note); });\nsigs.forEach(function (s) { positives.push('Signal (' + s.type + '): ' + s.signal + ' [' + s.source_url + ']'); });\n(r.potential_risks || []).forEach(function (x) { risks.push(x); });\nif (r.enrichment_status === 'failed') risks.push('Enrichment step failed');\n\nconst unscored = comps.filter(function (c) { return !c.scored; }).map(function (c) { return 'Unscored: ' + c.label; });\nconst missing = Array.from(new Set((r.missing_information || []).concat(unscored)));\nif (!r.revenue) missing.push('Revenue (unknown - attorney count needed for estimate)');\n\nlet next;\nif (fit === 'Insufficient Information') next = 'Collect more evidence (' + (missing.slice(0, 3).join('; ') || 'website and registry data') + ') and rerun classification.';\nelse if (fit === 'Low Fit') next = 'Deprioritize; archive unless a human reviewer sees a reason to revisit.';\nelse next = 'Human reviewer: verify practice mix and firm size from primary sources, confirm leadership/ownership structure via public registries, and research revenue range from credible sources. Do not contact the firm until TrueGrit/VIMANA approves.';\n\nconst explanation = 'Observed ' + observed + ' of ' + maxSupported + ' scoreable points (evidence coverage ' + coveragePct + '% of the 100-point model; normalized ' + (normalized === null ? 'n/a' : normalized + '/100') + '). ' +\n  comps.map(function (c) { return c.label + ': ' + (c.scored ? c.points + '/' + c.max : 'unscored (' + c.note + ')'); }).join(' | ') + '. Weights are provisional pending sponsor confirmation.';\n\nconst out = Object.assign({}, r, {\n  acquisition_score: observed, max_supported_points: maxSupported, evidence_coverage_pct: coveragePct, normalized_score: normalized,\n  final_fit: fit, data_confidence: dataConfidence, score_breakdown: comps, positive_indicators: positives, risk_factors: risks,\n  all_missing_information: missing, score_explanation: explanation, recommended_next_action: next,\n  review_required: (fit === 'High Fit' || fit === 'Moderate Fit'),\n  run_id: String($execution.id), scored_at: new Date().toISOString(),\n});\nreturn { json: out };"
+        "jsCode": "const cfg = $('Run Configuration').first().json;\nconst W = cfg.weights, T = cfg.thresholds;\nconst SP = cfg.size_pref || { acc_min: 10, acc_max: 400, pref_min: 10, pref_max: 400, partial: 0.6, outside: 0.3, exclude_outside: false };\nconst HP = cfg.history_pref || { pref_min: 10, acc_min: 5, partial: 0.5, outside: 0.2 };\nconst r = $json;\nconst ent = r.enrichment || {};\nconst comps = [];\nfunction round1(x) { return Math.round(x * 10) / 10; }\nfunction add(key, label, max, pts, note) { comps.push({ key: key, label: label, max: max, points: pts === null ? null : round1(pts), scored: pts !== null, note: note }); }\n// Size credit (same curve as the dashboard): 100% in the preferred band, tapering to partial at the edge of the acceptable band, outside credit beyond it.\nfunction sizeFactor(att, s) {\n  if (att === null || att === undefined) return null;\n  const amin = +s.acc_min, amax = +s.acc_max, pmin = Math.max(+s.pref_min, amin), pmax = Math.min(+s.pref_max, amax);\n  if (att >= pmin && att <= pmax) return 1;\n  if (att < amin || att > amax) return +s.outside;\n  const span = att < pmin ? (pmin - amin) : (amax - pmax), dist = att < pmin ? (pmin - att) : (att - pmax);\n  return span <= 0 ? +s.partial : 1 - (1 - s.partial) * (dist / span);\n}\n\n// 1. Insurance-defense practice fit (AI, evidence-grounded) blended with the sponsor keyword scorecard\nconst idf = r.insurance_defense_fit;\nconst aiF = idf === 'Strong' ? 1 : idf === 'Partial' ? 0.5 : idf === 'None' ? 0 : null;\nconst SB = cfg.scorecard_bands || { strong: 15, moderate: 5 };\nconst sc = r.insurance_score;\nconst scF = (sc === null || sc === undefined) ? null : sc >= SB.strong ? 1 : sc >= SB.moderate ? 0.6 : sc >= 0 ? 0.2 : 0;\nconst insF = aiF === null ? scF : scF === null ? aiF : (aiF + scF) / 2;\nadd('insurance_defense', 'Insurance-defense practice fit', W.insurance_defense, insF === null ? null : W.insurance_defense * insF,\n  'AI assessment: ' + idf + '; keyword scorecard: ' + (sc === null || sc === undefined ? 'n/a' : sc + ' (' + r.insurance_band + ')'));\n// 2. Geography\nconst states = cfg.states || ['FL', 'GA'];\nadd('geography', 'Target-state geography', W.geography, states.indexOf(r.state) > -1 ? W.geography : 0, 'State: ' + r.state);\n// 3. B2B focus\nconst b = r.b2b_focus;\nadd('b2b', 'B2B client focus', W.b2b, b === 'Primarily B2B/Insurers' ? W.b2b : b === 'Mixed' ? W.b2b * 0.5 : b === 'Primarily Consumer' ? 0 : null, 'AI assessment: ' + b);\n// 4. Size (attorney count against the preferred / acceptable bands)\nconst att = r.attorney_count;\nconst szf = sizeFactor(att, SP);\nadd('size', 'Firm size (attorneys)', W.size, szf === null ? null : W.size * szf,\n  att === null || att === undefined ? 'Attorney count unknown' : 'Attorneys: ' + att + ' (preferred ' + SP.pref_min + '-' + SP.pref_max + ', acceptable ' + SP.acc_min + '-' + SP.acc_max + ')');\n// 5. Operating history\nconst yrs = r.years_in_operation;\nadd('history', 'Operating history', W.history, (yrs === null || yrs === undefined) ? null : W.history * (yrs >= HP.pref_min ? 1 : yrs >= HP.acc_min ? HP.partial : HP.outside),\n  (yrs === null || yrs === undefined) ? 'Year founded unknown' : 'Years in operation: ' + yrs);\n// 6. Evidence-backed strategic / succession signals (only signals that carry a source URL and a quote)\nconst sigs = (ent.evidence_backed_signals || []).filter(function (s) { return s && s.source_url && s.evidence_quote; });\nadd('strategic', 'Evidence-backed strategic or succession signals', W.strategic, sigs.length >= 2 ? W.strategic : sigs.length === 1 ? W.strategic * 0.5 : null,\n  sigs.length ? sigs.length + ' sourced signal(s)' : 'No sourced signals found (not treated as negative)');\n// 7. Data completeness and reliability\nconst checks = [r.website, r.phone, r.address, r.year_founded, r.attorney_count, r.employee_count, r.revenue,\n  (r.leadership || []).length, (r.offices || []).length, (r.practice_areas || []).length, r.organization_type];\nconst have = checks.filter(function (v) { return v !== null && v !== undefined && v !== '' && v !== 0; }).length;\nconst share = have / checks.length;\nadd('completeness', 'Data completeness and reliability', W.completeness, W.completeness * share * (r.data_mode === 'LIVE' ? 1 : 0.5), have + ' of ' + checks.length + ' key fields known');\n\nconst totalPossible = comps.reduce(function (s, c) { return s + c.max; }, 0);\nconst scored = comps.filter(function (c) { return c.scored && c.max > 0; });\nconst observed = round1(scored.reduce(function (s, c) { return s + c.points; }, 0));\nconst maxSupported = round1(scored.reduce(function (s, c) { return s + c.max; }, 0));\nconst coveragePct = totalPossible > 0 ? Math.round(maxSupported / totalPossible * 100) : 0;\nconst normalized = maxSupported > 0 ? Math.round(observed / maxSupported * 100) : null;\n\n// Classification with hard gates\nconst risks = [];\nlet fit;\nconst HIGH_MIN_INS = (T.high_min_insurance !== undefined && T.high_min_insurance !== null) ? +T.high_min_insurance : 0.6;\nconst mixedSide = r.defense_vs_plaintiff === 'Both';\nconst strongIns = insF !== null && insF >= HIGH_MIN_INS;\nconst outsideSize = att !== null && att !== undefined && (att < SP.acc_min || att > SP.acc_max);\nif (r.classification_error) { fit = 'Insufficient Information'; risks.push('AI classification failed'); }\nelse if (r.defense_vs_plaintiff === 'Plaintiff') { fit = 'Low Fit'; risks.push('Disqualifying: predominantly plaintiff-side per website evidence (sponsor criterion: defense, not plaintiff)'); }\nelse if (r.civil_vs_criminal === 'Criminal') { fit = 'Low Fit'; risks.push('Disqualifying: predominantly criminal practice (sponsor criterion: civil, not criminal)'); }\nelse if (idf === 'None' || r.target_classification === 'Low Fit') { fit = 'Low Fit'; risks.push('Disqualifying: not an insurance-defense / B2B practice per evidence'); }\nelse if (SP.exclude_outside && outsideSize) { fit = 'Low Fit'; risks.push('Outside acceptable size range (' + SP.acc_min + '-' + SP.acc_max + ' attorneys)'); }\nelse if (coveragePct < T.min_coverage || normalized === null) { fit = 'Insufficient Information'; }\n// v3 (evaluation-driven, Nov 11): High Fit now also requires (a) strong insurance-defense evidence and (b) not a mixed\n// plaintiff/defense practice. Tests N02/A05 and live firms (HD Law Partners, Neblett, Jimerson Birr, Murphy & Ellis) showed\n// that size/geography/completeness points could lift partial-fit or mixed-side firms over the High threshold.\nelse if (normalized >= T.high && !mixedSide && strongIns) fit = 'High Fit';\nelse if (normalized >= T.high) {\n  fit = 'Moderate Fit';\n  if (mixedSide) risks.push('Capped at Moderate: mixed plaintiff/defense practice (AI: Both) - reviewer must verify the share of insurer-side work');\n  if (!strongIns) risks.push('Capped at Moderate: insurance-defense evidence is only partial (practice-fit factor ' + (insF === null ? 'n/a' : Math.round(insF * 100) + '%') + ' < ' + Math.round(HIGH_MIN_INS * 100) + '% required for High)');\n}\nelse if (normalized >= T.moderate) fit = 'Moderate Fit';\nelse fit = 'Low Fit';\n\n// v3: below the minimum evidence coverage the score is shown unscaled (points / full model) so a firm with an unreadable\n// website no longer displays ~82/100 on 20% coverage (test X04). Firms above the coverage floor are unchanged.\nconst displayScore = (coveragePct < T.min_coverage) ? Math.round(observed / totalPossible * 100) : normalized;\nconst conf = r.confidence_score || 0;\nconst dataConfidence = (r.data_mode !== 'LIVE') ? 'Low (sample/demo data - not verified)' : (coveragePct >= 75 && conf >= 0.7) ? 'High' : (coveragePct >= 50 && conf >= 0.5) ? 'Medium' : 'Low';\n\nconst positives = [];\nscored.forEach(function (c) { if (c.points >= c.max * 0.75 && c.max > 0) positives.push(c.label + ' (' + c.points + '/' + c.max + '): ' + c.note); });\nsigs.forEach(function (s) { positives.push('Signal (' + s.type + '): ' + s.signal + ' [' + s.source_url + ']'); });\n(r.potential_risks || []).forEach(function (x) { risks.push(x); });\nif (r.enrichment_status === 'failed') risks.push('Enrichment step failed');\n\nconst unscored = comps.filter(function (c) { return !c.scored; }).map(function (c) { return 'Unscored: ' + c.label; });\nconst missing = Array.from(new Set((r.missing_information || []).concat(unscored)));\nif (!r.revenue) missing.push('Revenue (unknown - attorney count needed for estimate)');\n\nlet next;\nif (fit === 'Insufficient Information') next = 'Collect more evidence (' + (missing.slice(0, 3).join('; ') || 'website and registry data') + ') and rerun classification.';\nelse if (fit === 'Low Fit') next = 'Deprioritize; archive unless a human reviewer sees a reason to revisit.';\nelse next = 'Human reviewer: verify practice mix and firm size from primary sources, confirm leadership/ownership structure via public registries, and research revenue range from credible sources. Do not contact the firm until TrueGrit/VIMANA approves.';\n\nconst explanation = 'Observed ' + observed + ' of ' + maxSupported + ' scoreable points (evidence coverage ' + coveragePct + '% of the ' + totalPossible + '-point model; normalized ' + (normalized === null ? 'n/a' : normalized + '/100') + '). ' +\n  comps.map(function (c) { return c.label + ': ' + (c.scored ? c.points + '/' + c.max : 'unscored (' + c.note + ')'); }).join(' | ') + '. Scoring profile: ' + (cfg.profile_name || 'Default (provisional)') + ' (adjustable on the dashboard).';\n\nconst out = Object.assign({}, r, {\n  acquisition_score: observed, max_supported_points: maxSupported, evidence_coverage_pct: coveragePct, normalized_score: displayScore,\n  score_basis: coveragePct < T.min_coverage ? 'unscaled (evidence coverage below ' + T.min_coverage + '%)' : 'normalized over scoreable factors',\n  final_fit: fit, data_confidence: dataConfidence, score_breakdown: comps, positive_indicators: positives, risk_factors: risks,\n  all_missing_information: missing, score_explanation: explanation, recommended_next_action: next,\n  review_required: (fit === 'High Fit' || fit === 'Moderate Fit'),\n  run_id: String($execution.id), scored_at: new Date().toISOString(), scoring_profile: cfg.profile_name || 'Default (provisional)',\n});\nreturn { json: out };\n"
       },
       "id": "624ff874-c546-4cd5-8d53-41011d09e0b4",
       "name": "Acquisition Fit Score",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        4832,
+        5456,
         608
       ]
     },
@@ -853,7 +878,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5056,
+        5680,
         224
       ]
     },
@@ -897,7 +922,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        5344,
+        5968,
         224
       ],
       "retryOnFail": true,
@@ -920,7 +945,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5056,
+        5680,
         416
       ]
     },
@@ -964,7 +989,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        5344,
+        5968,
         416
       ],
       "retryOnFail": true,
@@ -986,7 +1011,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5056,
+        5680,
         608
       ]
     },
@@ -1030,7 +1055,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        5344,
+        5968,
         608
       ],
       "retryOnFail": true,
@@ -1052,7 +1077,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5056,
+        5680,
         800
       ]
     },
@@ -1096,7 +1121,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        5344,
+        5968,
         800
       ],
       "retryOnFail": true,
@@ -1118,7 +1143,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5056,
+        5680,
         1104
       ],
       "executeOnce": false
@@ -1141,7 +1166,7 @@
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
       "position": [
-        5280,
+        5904,
         1104
       ],
       "retryOnFail": true,
@@ -1167,7 +1192,7 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        5360,
+        5984,
         1328
       ],
       "credentials": {
@@ -1187,7 +1212,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5632,
+        6256,
         1104
       ]
     },
@@ -1231,7 +1256,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        5856,
+        6480,
         1008
       ],
       "retryOnFail": true,
@@ -1254,7 +1279,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        5856,
+        6480,
         1200
       ]
     },
@@ -1298,7 +1323,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        6080,
+        6704,
         1200
       ],
       "retryOnFail": true,
@@ -1323,8 +1348,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        1120,
-        880
+        1280,
+        1040
       ],
       "id": "95862a30-d74d-42c1-9d65-4165e18789e1",
       "name": "API - USAspending Contracts",
@@ -1359,8 +1384,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        1120,
-        528
+        1328,
+        496
       ],
       "id": "26a7721e-9b9d-4f6d-ba0b-a77f8ebd0a14",
       "name": "API - Sunbiz Daily Registry",
@@ -1396,16 +1421,16 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        1120,
-        704
+        1296,
+        784
       ],
       "id": "fc0de50f-4a08-4cff-85ba-bb31dfd61c4b",
-      "name": "API \u2013 Apify Maps Discovery",
+      "name": "API – Apify Maps Discovery",
       "retryOnFail": true,
       "alwaysOutputData": true,
-      "onError": "continueRegularOutput",
       "maxTries": 3,
       "waitBetweenTries": 5000,
+      "onError": "continueRegularOutput",
       "credentials": {
         "httpHeaderAuth": {
           "id": "wA5Pu7vAf2ttzhEC",
@@ -1452,11 +1477,11 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        1120,
-        352
+        1456,
+        320
       ],
       "id": "8035e1b1-18da-4a73-ae42-73eef0c13441",
-      "name": "API \u2013 SerpApi Search",
+      "name": "API – SerpApi Search",
       "retryOnFail": true,
       "maxTries": 2,
       "waitBetweenTries": 2000,
@@ -1477,9 +1502,9 @@
         2160
       ],
       "id": "188cbd10-4d5c-462c-9e0d-4a918466415a",
-      "name": "Import \u2013 Florida Sunbiz Official Files",
+      "name": "Import – Florida Sunbiz Official Files",
       "notesInFlow": true,
-      "notes": "Placeholder \u2013 manual import. Free official data from sftp.floridados.gov (daily + quarterly text files). Not a REST API. Future: n8n SFTP node on a schedule + Code node to parse. Sunbiz Daily API covers the same data in an easier format."
+      "notes": "Placeholder – manual import. Free official data from sftp.floridados.gov (daily + quarterly text files). Not a REST API. Future: n8n SFTP node on a schedule + Code node to parse. Sunbiz Daily API covers the same data in an easier format."
     },
     {
       "parameters": {},
@@ -1490,9 +1515,9 @@
         1920
       ],
       "id": "2b16ab64-d7c3-41b4-afe4-81b27e08b30f",
-      "name": "Research \u2013 Georgia SOS Registry",
+      "name": "Research – Georgia SOS Registry",
       "notesInFlow": true,
-      "notes": "Placeholder \u2013 manual lookup only. Georgia has no free API or free bulk download. Use ecorp.sos.ga.gov/BusinessSearch to verify individual firms. Paid bulk option: $1,000 one-time or $100 setup + $500/month (needs sponsor approval)."
+      "notes": "Placeholder – manual lookup only. Georgia has no free API or free bulk download. Use ecorp.sos.ga.gov/BusinessSearch to verify individual firms. Paid bulk option: $1,000 one-time or $100 setup + $500/month (needs sponsor approval)."
     },
     {
       "parameters": {},
@@ -1503,32 +1528,32 @@
         1728
       ],
       "id": "a22b7dc8-9057-4dc7-ae0e-e7f0e93cf0b2",
-      "name": "API \u2013 SAM.gov Entity Search",
+      "name": "API – SAM.gov Entity Search",
       "notesInFlow": true,
-      "notes": "Placeholder \u2013 needs SAM.gov account + API key (account approval can be slow). Free key allows only 10 requests/day. Endpoint: api.sam.gov/entity-information/v4/entities, filter state FL/GA + NAICS 541110 (law offices). Low coverage of law firms."
+      "notes": "Placeholder – needs SAM.gov account + API key (account approval can be slow). Free key allows only 10 requests/day. Endpoint: api.sam.gov/entity-information/v4/entities, filter state FL/GA + NAICS 541110 (law offices). Low coverage of law firms."
     },
     {
       "parameters": {
-        "jsCode": "// Turn every discovery API's response into one common record shape.\n// Place sources (SerpApi, Apify Maps) supply firms with websites; registry sources (Sunbiz Daily, USAspending)\n// supply entity / federal-contract records that are cross-referenced onto those firms in the next step.\nconst ST = { florida: 'FL', georgia: 'GA', 'north carolina': 'NC', 'south carolina': 'SC', virginia: 'VA' };\nfunction stateFrom(addr, st) {\n  if (st) { const k = String(st).trim(); if (k.length === 2) return k.toUpperCase(); if (ST[k.toLowerCase()]) return ST[k.toLowerCase()]; }\n  const m = String(addr || '').match(/,\\s*([A-Z]{2})\\s+\\d{5}/); return m ? m[1] : '';\n}\nfunction cityFrom(addr) { const p = String(addr || '').split(','); return p.length >= 3 ? p[p.length - 2].trim() : ''; }\nconst out = [];\nconst counts = { serpapi: 0, apify: 0, sunbiz: 0, usaspending: 0, errors: 0 };\nfor (const item of $input.all()) {\n  const d = item.json || {};\n  if (d.error && !d.local_results && !d.filings && !d.results && !d.title) { counts.errors++; continue; }\n  if (Array.isArray(d.local_results)) {\n    const q = (d.search_parameters && d.search_parameters.q) || '';\n    for (const r of d.local_results) {\n      counts.serpapi++;\n      out.push({ kind: 'place', source: 'SerpApi (Google Maps)', company_name: r.title || '', address: r.address || '', city: cityFrom(r.address), state: stateFrom(r.address),\n        phone: r.phone || '', website: r.website || '', types: [r.type || ''].concat(r.types || []).filter(Boolean), rating: r.rating ?? null, reviews: r.reviews ?? null,\n        place_id: r.place_id || '', open_state: r.open_state || '', query: q });\n    }\n  } else if (Array.isArray(d.filings)) {\n    for (const r of d.filings) {\n      counts.sunbiz++;\n      out.push({ kind: 'registry', source: 'Sunbiz Daily', company_name: r.corporation_name || '', city: r.city || '', state: 'FL', zip: r.zip || '',\n        entity_number: r.corporation_number || '', entity_status: r.status === 'A' ? 'Active' : (r.status || ''), entity_type: r.filing_type_display || '', file_date: r.file_date || '' });\n    }\n  } else if (Array.isArray(d.results)) {\n    for (const r of d.results) {\n      counts.usaspending++;\n      out.push({ kind: 'registry', source: 'USAspending', company_name: r['Recipient Name'] || '', award_amount: Number(r['Award Amount']) || 0,\n        agency: r['Awarding Agency'] || '', award_start: r['Start Date'] || '', recipient_id: r.recipient_id || '' });\n    }\n  } else if (d.title) {\n    counts.apify++;\n    out.push({ kind: 'place', source: 'Apify (Google Maps)', company_name: d.title, address: d.address || '', city: d.city || cityFrom(d.address), state: stateFrom(d.address, d.state),\n      phone: d.phone || '', website: d.website || '', types: (d.categories && d.categories.length ? d.categories : [d.categoryName || '']).filter(Boolean),\n      rating: d.totalScore ?? null, reviews: d.reviewsCount ?? null, place_id: d.placeId || '', open_state: d.permanentlyClosed ? 'Permanently closed' : '', query: d.searchString || '' });\n  }\n}\nout.forEach(function (r) { r._source_counts = counts; });\nreturn out.map(function (j) { return { json: j }; });\n"
+        "jsCode": "// Turn every discovery API's response into one common record shape.\n// Place sources (SerpApi, Apify Maps) supply firms with websites; registry sources (Sunbiz Daily, USAspending)\n// supply entity / federal-contract records that are cross-referenced onto those firms in the next step.\nconst ST = { florida: 'FL', georgia: 'GA', 'north carolina': 'NC', 'south carolina': 'SC', virginia: 'VA' };\nfunction stateFrom(addr, st) {\n  if (st) { const k = String(st).trim(); if (k.length === 2) return k.toUpperCase(); if (ST[k.toLowerCase()]) return ST[k.toLowerCase()]; }\n  const m = String(addr || '').match(/,\\s*([A-Z]{2})\\s+\\d{5}/); return m ? m[1] : '';\n}\nfunction cityFrom(addr) { const p = String(addr || '').split(','); return p.length >= 3 ? p[p.length - 2].trim() : ''; }\nconst out = [];\nconst counts = { serpapi: 0, apify: 0, sunbiz: 0, usaspending: 0, justia: 0, errors: 0 };\nfor (const item of $input.all()) {\n  const d = item.json || {};\n  if (d.directory_source === 'Justia') {\n    if (d._justia_stats) counts.justia_pages_ok = d._justia_stats.pages_ok, counts.justia_pages_failed = d._justia_stats.pages_failed, counts.justia_attorneys = d._justia_stats.unique_attorneys;\n    if (d._stats_only) continue;\n    counts.justia++;\n    out.push({ kind: 'place', source: 'Justia Directory', company_name: d.company_name || '', address: d.address || '', city: d.city || cityFrom(d.address), state: d.state || stateFrom(d.address),\n      phone: d.phone || '', website: d.website || '', types: ['Law firm', 'Insurance defense (Justia practice-area listing)'], rating: null, reviews: null, place_id: '', open_state: '',\n      query: 'Justia ' + (d.practice_area || '') + ' / ' + (d.state || ''), directory_attorney_count: d.directory_attorney_count || 0,\n      directory_attorneys: d.directory_attorneys || [], directory_profile_urls: d.directory_profile_urls || [] });\n    continue;\n  }\n  if (d.error && !d.local_results && !d.filings && !d.results && !d.title) { counts.errors++; continue; }\n  if (Array.isArray(d.local_results)) {\n    const q = (d.search_parameters && d.search_parameters.q) || '';\n    for (const r of d.local_results) {\n      counts.serpapi++;\n      out.push({ kind: 'place', source: 'SerpApi (Google Maps)', company_name: r.title || '', address: r.address || '', city: cityFrom(r.address), state: stateFrom(r.address),\n        phone: r.phone || '', website: r.website || '', types: [r.type || ''].concat(r.types || []).filter(Boolean), rating: r.rating ?? null, reviews: r.reviews ?? null,\n        place_id: r.place_id || '', open_state: r.open_state || '', query: q });\n    }\n  } else if (Array.isArray(d.filings)) {\n    for (const r of d.filings) {\n      counts.sunbiz++;\n      out.push({ kind: 'registry', source: 'Sunbiz Daily', company_name: r.corporation_name || '', city: r.city || '', state: 'FL', zip: r.zip || '',\n        entity_number: r.corporation_number || '', entity_status: r.status === 'A' ? 'Active' : (r.status || ''), entity_type: r.filing_type_display || '', file_date: r.file_date || '' });\n    }\n  } else if (Array.isArray(d.results)) {\n    for (const r of d.results) {\n      counts.usaspending++;\n      out.push({ kind: 'registry', source: 'USAspending', company_name: r['Recipient Name'] || '', award_amount: Number(r['Award Amount']) || 0,\n        agency: r['Awarding Agency'] || '', award_start: r['Start Date'] || '', recipient_id: r.recipient_id || '' });\n    }\n  } else if (d.title) {\n    counts.apify++;\n    out.push({ kind: 'place', source: 'Apify (Google Maps)', company_name: d.title, address: d.address || '', city: d.city || cityFrom(d.address), state: stateFrom(d.address, d.state),\n      phone: d.phone || '', website: d.website || '', types: (d.categories && d.categories.length ? d.categories : [d.categoryName || '']).filter(Boolean),\n      rating: d.totalScore ?? null, reviews: d.reviewsCount ?? null, place_id: d.placeId || '', open_state: d.permanentlyClosed ? 'Permanently closed' : '', query: d.searchString || '' });\n  }\n}\nout.forEach(function (r) { r._source_counts = counts; });\nreturn out.map(function (j) { return { json: j }; });\n"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1568,
-        608
+        1872,
+        512
       ],
       "id": "03f35580-50aa-4c56-8783-d6ea58c0bb68",
-      "name": "Normalize \u2013 Company Discovery Results"
+      "name": "Normalize – Company Discovery Results"
     },
     {
       "parameters": {
-        "numberInputs": 4
+        "numberInputs": 5
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        1344,
-        608
+        1536,
+        576
       ],
       "id": "d45d76fd-f995-47d7-91b2-1cfa4281ff59",
       "name": "Merge"
@@ -1538,23 +1563,23 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        896,
-        608
+        1008,
+        576
       ],
       "id": "bc38ed15-b02f-4a8e-9248-a4a1d0f5cd95",
-      "name": "Start \u2013 Discovery Test"
+      "name": "Start – Discovery Test"
     },
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "// Sponsor scorecard (Additional Criteria v2.3): keyword scoring of website language + revenue estimate from attorney count.\n// Each unique term counts once. Longer phrases are matched first and masked so overlapping shorter terms are not double-counted.\nconst cfg = $('Run Configuration').first().json;\nconst bands = cfg.scorecard_bands || { strong: 15, moderate: 5 };\nconst rpa = cfg.revenue_per_attorney || { low: 300000, high: 500000 };\nconst r = Object.assign({}, $json);\nconst T = {\n  5: ['insurance defense', 'insurer representation', 'insurance carrier', 'insurance carriers', 'panel counsel', 'approved panel counsel', 'coverage counsel', 'insurance coverage', 'first-party coverage', 'third-party coverage', 'duty to defend', 'duty to indemnify', 'reservation of rights', 'bad faith defense', 'extra-contractual liability', 'reinsurance', \"Lloyd's\", 'London Market', 'excess carrier', 'excess insurance', 'self-insured', 'self-insured retention', 'TPA', 'third-party administrator', 'claims administrator', 'claims professional', 'claims professionals', 'claims litigation', 'subrogation'],\n  3: ['casualty defense', 'general liability', 'complex casualty', 'excess casualty', 'commercial auto', 'trucking defense', 'transportation liability', 'construction defect', 'construction liability', 'premises liability', 'professional liability', 'errors and omissions', 'E&O', 'medical malpractice defense', 'healthcare liability', 'product liability defense', 'products liability defense', 'toxic tort', 'environmental liability', \"workers' compensation defense\", 'workers compensation defense', 'employment practices liability', 'EPLI', 'D&O liability', 'cyber liability', 'property damage', 'first-party property', 'maritime liability', 'admiralty liability', 'aviation liability', 'fidelity', 'surety'],\n  1: ['commercial litigation', 'employment defense', 'construction litigation', 'healthcare litigation', 'real estate litigation', 'class action defense', 'appellate litigation', 'regulatory defense', 'business torts'],\n  '-3': ['M&A', 'mergers and acquisitions', 'corporate transactions', 'private equity', 'venture capital', 'securities offerings', 'tax', 'bankruptcy', 'restructuring', 'patent litigation', 'IP litigation', 'intellectual property litigation', 'trademark', 'antitrust', 'white collar', 'investigations', 'trusts and estates', 'estate planning', 'immigration', 'family law', 'public finance', 'banking and finance', 'fund formation'],\n  '-5': ['plaintiff personal injury', 'plaintiff medical malpractice', 'plaintiff product liability', 'plaintiff mass tort', 'contingency fee', 'no fee unless we win', 'accident victims', 'injured plaintiffs', 'policyholder representation', 'insurance recovery for policyholders', 'suing insurance companies', 'coverage recovery', 'bad-faith claims against insurers', 'bad faith claims against insurers'],\n};\nfunction esc(s) { return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }\nfunction rx(term) {\n  let p = esc(term.toLowerCase()).replace(/\\\\-/g, '-').replace(/[ -]+/g, '[\\\\s\\\\-]+').replace(/&|\\band\\b/g, '(?:&|and|&amp;)').replace(/'/g, \"['\u2019]?\");\n  return new RegExp('(^|[^a-z0-9])' + p + '(?=$|[^a-z0-9])', 'i');\n}\nconst all = [];\nObject.keys(T).forEach(function (w) { T[w].forEach(function (t) { all.push({ term: t, weight: Number(w) }); }); });\nall.sort(function (a, b) { return b.term.length - a.term.length; });\nlet text = ' ' + String(r.website_text || '').toLowerCase().replace(/\\s+/g, ' ') + ' ';\nconst matched = [];\nconst seenTerm = {};\nall.forEach(function (t) {\n  const key = t.term.toLowerCase().replace(/[^a-z0-9]/g, '');\n  if (seenTerm[key]) return;\n  const re = rx(t.term);\n  const m = text.match(re);\n  if (!m) return;\n  seenTerm[key] = true;\n  matched.push(t);\n  const g = new RegExp(re.source, 'gi');\n  text = text.replace(g, function (s, pre) { return pre + ' '.repeat(s.length - pre.length); });\n});\nconst score = matched.reduce(function (s, t) { return s + t.weight; }, 0);\nconst hasText = !!(r.website_text && r.website_text.length > 200);\nconst band = !hasText ? 'No website text' : score >= bands.strong ? 'Strong insurance focus' : score >= bands.moderate ? 'Moderate insurance focus' : score >= 0 ? 'Weak / unclear' : 'Likely non-insurance or plaintiff';\nr.insurance_score = hasText ? score : null;\nr.insurance_band = band;\nr.insurance_terms_matched = matched.sort(function (a, b) { return b.weight - a.weight; }).map(function (t) { return t.term + ' (' + (t.weight > 0 ? '+' : '') + t.weight + ')'; });\nr.plaintiff_terms = matched.filter(function (t) { return t.weight === -5; }).map(function (t) { return t.term; });\n\nconst risks = (r.potential_risks || []).slice();\nif (hasText) {\n  if (r.insurance_defense_fit === 'Strong' && score < bands.moderate) risks.push('Keyword scorecard (' + score + ') does not corroborate the AI \"Strong\" insurance-defense rating - verify practice mix');\n  if ((r.insurance_defense_fit === 'None' || r.insurance_defense_fit === 'Unknown') && score >= bands.strong) risks.push('Keyword scorecard (' + score + ') suggests insurance focus but AI rated fit ' + r.insurance_defense_fit + ' - verify');\n  if (r.plaintiff_terms.length) risks.push('Plaintiff-side language on website: ' + r.plaintiff_terms.join(', '));\n}\nif (r.defense_vs_plaintiff === 'Plaintiff') risks.push('AI assessment: primarily plaintiff-side');\nif (r.civil_vs_criminal === 'Criminal') risks.push('AI assessment: primarily criminal practice');\nr.potential_risks = risks;\n\nconst att = r.attorney_count;\nconst prov = (r.provenance || []).slice();\nconst now = new Date().toISOString();\nif (att !== null && att !== undefined && att > 0) {\n  const lo = att * rpa.low, hi = att * rpa.high;\n  const fmt = function (n) { return '$' + (n / 1e6).toFixed(1) + 'M'; };\n  r.revenue_estimate_low = lo; r.revenue_estimate_high = hi;\n  r.revenue_estimate = fmt(lo) + '-' + fmt(hi) + ' (est.)';\n  r.in_size_band = att >= 10 && att <= 400;\n  if (!r.revenue) {\n    r.revenue = r.revenue_estimate; r.revenue_status = r.data_mode === 'LIVE' ? 'estimated' : 'sample_demo';\n    prov.push({ field: 'revenue', value: r.revenue_estimate, source: 'Formula: attorney_count x $300k-$500k (sponsor rule of thumb)', url: '', evidence_quote: att + ' attorneys', status: 'estimated', extracted_at: now });\n  }\n} else { r.revenue_estimate = null; r.in_size_band = null; }\nif (hasText) prov.push({ field: 'insurance_score', value: String(score), source: 'Sponsor keyword scorecard v2.3', url: r.website || '', evidence_quote: r.insurance_terms_matched.join('; ').slice(0, 480), status: 'estimated', extracted_at: now });\nr.provenance = prov;\n\n// Names used by the public-record lookups that follow\nconst base = String(r.company_name || '').replace(/^(the )?law offices? of /i, '').replace(/,?\\s+(llp|l\\.l\\.p\\.|llc|l\\.l\\.c\\.|pllc|p\\.l\\.l\\.c\\.|p\\.a\\.|pa|p\\.c\\.|pc|p\\.l\\.|pl|chartered|attorneys at law|attorneys|lawyers)\\.?$/i, '').replace(/,\\s*$/, '').trim();\nr.registry_name = base;\nr.sunbiz_search_url = 'https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?inquiryType=EntityName&searchTerm=' + encodeURIComponent(base.toUpperCase());\nr.ga_sos_search_url = 'https://ecorp.sos.ga.gov/BusinessSearch';\nreturn { json: r };\n"
+        "jsCode": "// Sponsor scorecard (Additional Criteria v2.3): keyword scoring of website language + revenue estimate from attorney count.\n// Each unique term counts once. Longer phrases are matched first and masked so overlapping shorter terms are not double-counted.\nconst cfg = $('Run Configuration').first().json;\nconst bands = cfg.scorecard_bands || { strong: 15, moderate: 5 };\nconst rpa = cfg.revenue_per_attorney || { low: 300000, high: 500000 };\nconst r = Object.assign({}, $json);\nconst T = {\n  5: ['insurance defense', 'insurer representation', 'insurance carrier', 'insurance carriers', 'panel counsel', 'approved panel counsel', 'coverage counsel', 'insurance coverage', 'first-party coverage', 'third-party coverage', 'duty to defend', 'duty to indemnify', 'reservation of rights', 'bad faith defense', 'extra-contractual liability', 'reinsurance', \"Lloyd's\", 'London Market', 'excess carrier', 'excess insurance', 'self-insured', 'self-insured retention', 'TPA', 'third-party administrator', 'claims administrator', 'claims professional', 'claims professionals', 'claims litigation', 'subrogation'],\n  3: ['casualty defense', 'general liability', 'complex casualty', 'excess casualty', 'commercial auto', 'trucking defense', 'transportation liability', 'construction defect', 'construction liability', 'premises liability', 'professional liability', 'errors and omissions', 'E&O', 'medical malpractice defense', 'healthcare liability', 'product liability defense', 'products liability defense', 'toxic tort', 'environmental liability', \"workers' compensation defense\", 'workers compensation defense', 'employment practices liability', 'EPLI', 'D&O liability', 'cyber liability', 'property damage', 'first-party property', 'maritime liability', 'admiralty liability', 'aviation liability', 'fidelity', 'surety'],\n  1: ['commercial litigation', 'employment defense', 'construction litigation', 'healthcare litigation', 'real estate litigation', 'class action defense', 'appellate litigation', 'regulatory defense', 'business torts'],\n  '-3': ['M&A', 'mergers and acquisitions', 'corporate transactions', 'private equity', 'venture capital', 'securities offerings', 'tax', 'bankruptcy', 'restructuring', 'patent litigation', 'IP litigation', 'intellectual property litigation', 'trademark', 'antitrust', 'white collar', 'investigations', 'trusts and estates', 'estate planning', 'immigration', 'family law', 'public finance', 'banking and finance', 'fund formation'],\n  '-5': ['plaintiff personal injury', 'plaintiff medical malpractice', 'plaintiff product liability', 'plaintiff mass tort', 'contingency fee', 'no fee unless we win', 'accident victims', 'injured plaintiffs', 'policyholder representation', 'insurance recovery for policyholders', 'suing insurance companies', 'coverage recovery', 'bad-faith claims against insurers', 'bad faith claims against insurers'],\n};\nfunction esc(s) { return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }\nfunction rx(term) {\n  let p = esc(term.toLowerCase()).replace(/\\\\-/g, '-').replace(/[ -]+/g, '[\\\\s\\\\-]+').replace(/&|\\band\\b/g, '(?:&|and|&amp;)').replace(/'/g, \"['’]?\");\n  return new RegExp('(^|[^a-z0-9])' + p + '(?=$|[^a-z0-9])', 'i');\n}\nconst all = [];\nObject.keys(T).forEach(function (w) { T[w].forEach(function (t) { all.push({ term: t, weight: Number(w) }); }); });\nall.sort(function (a, b) { return b.term.length - a.term.length; });\nlet text = ' ' + String(r.website_text || '').toLowerCase().replace(/\\s+/g, ' ') + ' ';\nconst matched = [];\nconst seenTerm = {};\nall.forEach(function (t) {\n  const key = t.term.toLowerCase().replace(/[^a-z0-9]/g, '');\n  if (seenTerm[key]) return;\n  const re = rx(t.term);\n  const m = text.match(re);\n  if (!m) return;\n  seenTerm[key] = true;\n  matched.push(t);\n  const g = new RegExp(re.source, 'gi');\n  text = text.replace(g, function (s, pre) { return pre + ' '.repeat(s.length - pre.length); });\n});\nconst score = matched.reduce(function (s, t) { return s + t.weight; }, 0);\nconst hasText = !!(r.website_text && r.website_text.length > 200);\nconst band = !hasText ? 'No website text' : score >= bands.strong ? 'Strong insurance focus' : score >= bands.moderate ? 'Moderate insurance focus' : score >= 0 ? 'Weak / unclear' : 'Likely non-insurance or plaintiff';\nr.insurance_score = hasText ? score : null;\nr.insurance_band = band;\nr.insurance_terms_matched = matched.sort(function (a, b) { return b.weight - a.weight; }).map(function (t) { return t.term + ' (' + (t.weight > 0 ? '+' : '') + t.weight + ')'; });\nr.plaintiff_terms = matched.filter(function (t) { return t.weight === -5; }).map(function (t) { return t.term; });\n\nconst risks = (r.potential_risks || []).slice();\nif (hasText) {\n  if (r.insurance_defense_fit === 'Strong' && score < bands.moderate) risks.push('Keyword scorecard (' + score + ') does not corroborate the AI \"Strong\" insurance-defense rating - verify practice mix');\n  if ((r.insurance_defense_fit === 'None' || r.insurance_defense_fit === 'Unknown') && score >= bands.strong) risks.push('Keyword scorecard (' + score + ') suggests insurance focus but AI rated fit ' + r.insurance_defense_fit + ' - verify');\n  if (r.plaintiff_terms.length) risks.push('Plaintiff-side language on website: ' + r.plaintiff_terms.join(', '));\n}\nif (r.defense_vs_plaintiff === 'Plaintiff') risks.push('AI assessment: primarily plaintiff-side');\nif (r.civil_vs_criminal === 'Criminal') risks.push('AI assessment: primarily criminal practice');\nr.potential_risks = risks;\n\nlet att = r.attorney_count;\nconst prov = (r.provenance || []).slice();\nconst now = new Date().toISOString();\n// Fallback: when the website/AI gave no attorney count, use the Justia listing count as a LOWER BOUND.\nif (!(Number(att) > 0) && Number(r.directory_attorney_count) > 0) {\n  att = Number(r.directory_attorney_count);\n  r.attorney_count = att;\n  r.attorney_count_source = 'Justia directory listings (lower bound)';\n  r.missing_information = (r.missing_information || []).concat(['Attorney count is a lower bound from Justia listings - verify (Florida Bar / GA Bar firm search, firm website)']);\n  prov.push({ field: 'attorney_count', value: String(att), source: 'Justia Lawyer Directory (count of listed attorneys - lower bound)', url: (r.directory_profile_urls || [])[0] || '', evidence_quote: (r.directory_attorneys || []).slice(0, 10).join(', '), status: 'estimated', extracted_at: now });\n} else if (Number(att) > 0) { r.attorney_count_source = r.attorney_count_source || 'Firm website (AI extraction)'; }\nif (att !== null && att !== undefined && att > 0) {\n  const lo = att * rpa.low, hi = att * rpa.high;\n  const fmt = function (n) { return '$' + (n / 1e6).toFixed(1) + 'M'; };\n  r.revenue_estimate_low = lo; r.revenue_estimate_high = hi;\n  r.revenue_estimate = fmt(lo) + '-' + fmt(hi) + ' (est.)';\n  r.in_size_band = att >= 10 && att <= 400;\n  if (!r.revenue) {\n    r.revenue = r.revenue_estimate; r.revenue_status = r.data_mode === 'LIVE' ? 'estimated' : 'sample_demo';\n    prov.push({ field: 'revenue', value: r.revenue_estimate, source: 'Formula: attorney_count x $300k-$500k (sponsor rule of thumb)', url: '', evidence_quote: att + ' attorneys', status: 'estimated', extracted_at: now });\n  }\n} else { r.revenue_estimate = null; r.in_size_band = null; }\nif (hasText) prov.push({ field: 'insurance_score', value: String(score), source: 'Sponsor keyword scorecard v2.3', url: r.website || '', evidence_quote: r.insurance_terms_matched.join('; ').slice(0, 480), status: 'estimated', extracted_at: now });\nr.provenance = prov;\n\n// Names used by the public-record lookups that follow\nconst base = String(r.company_name || '').replace(/^(the )?law offices? of /i, '').replace(/,?\\s+(llp|l\\.l\\.p\\.|llc|l\\.l\\.c\\.|pllc|p\\.l\\.l\\.c\\.|p\\.a\\.|pa|p\\.c\\.|pc|p\\.l\\.|pl|chartered|attorneys at law|attorneys|lawyers)\\.?$/i, '').replace(/,\\s*$/, '').trim();\nr.registry_name = base;\nr.sunbiz_search_url = 'https://search.sunbiz.org/Inquiry/CorporationSearch/SearchResults?inquiryType=EntityName&searchTerm=' + encodeURIComponent(base.toUpperCase());\nr.ga_sos_search_url = 'https://ecorp.sos.ga.gov/BusinessSearch';\nreturn { json: r };\n"
       },
       "id": "05a3074e-2730-47dd-9fe8-fe02f4e2fd55",
       "name": "Insurance Scorecard + Revenue Estimate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        3168,
+        3792,
         656
       ],
       "notes": "Sponsor keyword scorecard (+5/+3/+1/-3/-5) and attorneys x $300k-$500k revenue estimate."
@@ -1592,7 +1617,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        3344,
+        3696,
         928
       ],
       "retryOnFail": true,
@@ -1652,33 +1677,31 @@
       ]
     },
     {
-      "id": "708f8947-a110-41dd-a511-f6e3a91fdb75",
-      "name": "Read Existing Leads",
-      "type": "n8n-nodes-base.googleSheets",
-      "typeVersion": 4.7,
-      "position": [
-        1728,
-        608
-      ],
       "parameters": {
         "documentId": {
           "__rl": true,
           "mode": "id",
           "value": "={{ $(\"Run Configuration\").first().json.spreadsheet_id }}"
         },
-        "operation": "read",
-        "options": {},
-        "resource": "sheet",
         "sheetName": {
           "__rl": true,
           "mode": "name",
           "value": "Company_Leads"
-        }
+        },
+        "options": {}
       },
-      "notes": "Firms already researched; Parse Places Results skips them so each run finds new firms.",
-      "onError": "continueRegularOutput",
+      "id": "708f8947-a110-41dd-a511-f6e3a91fdb75",
+      "name": "Read Existing Leads",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        2080,
+        608
+      ],
       "alwaysOutputData": true,
       "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "notes": "Firms already researched; Parse Places Results skips them so each run finds new firms.",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "YlMgclAPtGgkpKaz",
@@ -1687,17 +1710,14 @@
       }
     },
     {
-      "id": "ae5c0899-6d77-4800-a2b4-7860992a820e",
-      "name": "One Apify Search per City",
-      "type": "n8n-nodes-base.filter",
-      "typeVersion": 2.2,
-      "position": [
-        1056,
-        512
-      ],
       "parameters": {
         "conditions": {
-          "combinator": "and",
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
           "conditions": [
             {
               "id": "p0",
@@ -1709,27 +1729,24 @@
               "rightValue": 0
             }
           ],
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "loose",
-            "version": 2
-          }
+          "combinator": "and"
         },
         "options": {}
       },
+      "id": "ae5c0899-6d77-4800-a2b4-7860992a820e",
+      "name": "One Apify Search per City",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [
+        1184,
+        608
+      ],
       "notes": "Apify free plan allows 5 concurrent runs: Maps discovery runs once per city (first phrase); SerpApi covers every phrase."
     },
     {
-      "id": "78fb7509-d6c3-4d13-bdcd-d4288d4ac829",
-      "name": "Direct Homepage Fetch (fallback)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.5,
-      "position": [
-        2400,
-        608
-      ],
       "parameters": {
+        "url": "={{ $json.website }}",
+        "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
@@ -1741,8 +1758,8 @@
         "options": {
           "batching": {
             "batch": {
-              "batchInterval": 300,
-              "batchSize": 1
+              "batchSize": 1,
+              "batchInterval": 300
             }
           },
           "redirect": {
@@ -1757,47 +1774,54 @@
             }
           },
           "timeout": 15000
-        },
-        "sendHeaders": true,
-        "url": "={{ $json.website }}"
+        }
       },
-      "notes": "Free fallback when Apify could not scrape a site.",
+      "id": "78fb7509-d6c3-4d13-bdcd-d4288d4ac829",
+      "name": "Direct Homepage Fetch (fallback)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2752,
+        608
+      ],
+      "alwaysOutputData": true,
       "onError": "continueRegularOutput",
-      "alwaysOutputData": true
+      "notes": "Free fallback when Apify could not scrape a site."
     },
     {
+      "parameters": {
+        "jsCode": "// Fallback: if Apify could not scrape a firm's site (busy / blocked), use the homepage fetched directly by n8n.\nconst cands = $('Extract Website Text').all().map(function (i) { return i.json; });\nconst now = new Date().toISOString();\nconst NL = String.fromCharCode(10), CR = String.fromCharCode(13), TAB = String.fromCharCode(9);\nreturn $input.all().map(function (item, idx) {\n  const c = Object.assign({}, cands[idx] || {});\n  if (c.pages_scraped > 0 || !c.website) return { json: c };\n  const html = (item.json && typeof item.json.data === 'string') ? item.json.data : '';\n  let text = html.replace(/<script[^>]*>[^]*?<[/]script>/gi, ' ').replace(/<style[^>]*>[^]*?<[/]style>/gi, ' ').replace(/<[^>]*>/g, ' ');\n  text = text.split(NL).join(' ').split(CR).join(' ').split(TAB).join(' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/ +/g, ' ').trim().slice(0, 8000);\n  if (text.length > 200) {\n    c.website_text = '=== PAGE: ' + c.website + ' (homepage, direct fetch) ===' + NL + text;\n    c.pages_scraped = 1; c.scraped_page_urls = [c.website]; c.scrape_method = 'direct_fetch_fallback'; delete c.scrape_note;\n    c.sources = (c.sources || []).concat([{ field: 'website_page', value: '(homepage text, direct fetch fallback)', source: 'Firm website (direct fetch)', url: c.website, status: 'verified', extracted_at: now }]);\n    c.source_urls = Array.from(new Set((c.source_urls || []).concat([c.website])));\n  }\n  return { json: c };\n});\n"
+      },
       "id": "61464bc6-2fae-43e0-8af9-18052fe9cf95",
       "name": "Use Fallback Text",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2512,
+        2864,
         608
-      ],
-      "parameters": {
-        "jsCode": "// Fallback: if Apify could not scrape a firm's site (busy / blocked), use the homepage fetched directly by n8n.\nconst cands = $('Extract Website Text').all().map(function (i) { return i.json; });\nconst now = new Date().toISOString();\nconst NL = String.fromCharCode(10), CR = String.fromCharCode(13), TAB = String.fromCharCode(9);\nreturn $input.all().map(function (item, idx) {\n  const c = Object.assign({}, cands[idx] || {});\n  if (c.pages_scraped > 0 || !c.website) return { json: c };\n  const html = (item.json && typeof item.json.data === 'string') ? item.json.data : '';\n  let text = html.replace(/<script[^>]*>[^]*?<[/]script>/gi, ' ').replace(/<style[^>]*>[^]*?<[/]style>/gi, ' ').replace(/<[^>]*>/g, ' ');\n  text = text.split(NL).join(' ').split(CR).join(' ').split(TAB).join(' ').replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/ +/g, ' ').trim().slice(0, 8000);\n  if (text.length > 200) {\n    c.website_text = '=== PAGE: ' + c.website + ' (homepage, direct fetch) ===' + NL + text;\n    c.pages_scraped = 1; c.scraped_page_urls = [c.website]; c.scrape_method = 'direct_fetch_fallback'; delete c.scrape_note;\n    c.sources = (c.sources || []).concat([{ field: 'website_page', value: '(homepage text, direct fetch fallback)', source: 'Firm website (direct fetch)', url: c.website, status: 'verified', extracted_at: now }]);\n    c.source_urls = Array.from(new Set((c.source_urls || []).concat([c.website])));\n  }\n  return { json: c };\n});\n"
-      }
+      ]
     },
     {
-      "id": "2b944b0a-a8d7-4cd5-bc1e-952a659d690a",
-      "name": "OpenAI Fixer Model (classification)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.3,
-      "position": [
-        3008,
-        736
-      ],
       "parameters": {
         "model": {
           "__rl": true,
           "mode": "id",
           "value": "gpt-5.6-luna"
         },
+        "builtInTools": {},
         "options": {
-          "maxRetries": 2,
-          "timeout": 90000
+          "timeout": 90000,
+          "maxRetries": 2
         }
       },
+      "id": "2b944b0a-a8d7-4cd5-bc1e-952a659d690a",
+      "name": "OpenAI Fixer Model (classification)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        3632,
+        736
+      ],
       "notes": "Used only to repair AI output that does not match the classification JSON schema.",
       "credentials": {
         "openAiApi": {
@@ -1807,25 +1831,26 @@
       }
     },
     {
-      "id": "4ba61770-ab0f-461d-ad48-ef62a20d5cc4",
-      "name": "OpenAI Fixer Model (research)",
-      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
-      "typeVersion": 1.3,
-      "position": [
-        4208,
-        448
-      ],
       "parameters": {
         "model": {
           "__rl": true,
           "mode": "id",
           "value": "gpt-5.6-luna"
         },
+        "builtInTools": {},
         "options": {
-          "maxRetries": 2,
-          "timeout": 120000
+          "timeout": 120000,
+          "maxRetries": 2
         }
       },
+      "id": "4ba61770-ab0f-461d-ad48-ef62a20d5cc4",
+      "name": "OpenAI Fixer Model (research)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        4832,
+        448
+      ],
       "notes": "Used only to repair research-agent output that does not match the research JSON schema.",
       "credentials": {
         "openAiApi": {
@@ -1833,36 +1858,162 @@
           "name": "OpenAI account"
         }
       }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "FL9nLbiqxmqzohpl"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "key",
+              "keyValue": "active"
+            }
+          ]
+        },
+        "limit": 1
+      },
+      "id": "8f9ad076-a5b8-4a6d-9b77-30caddf2a544",
+      "name": "Read Dashboard Settings",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        64,
+        320
+      ],
+      "alwaysOutputData": true,
+      "executeOnce": true,
+      "onError": "continueRegularOutput",
+      "notes": "Team-default settings saved from the dashboard's Scoring model / Search settings pages."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Justia Lawyer Directory discovery (sponsor ask, Nov 2026): page through the public practice-area listing for each state.\n// Justia lists individual attorneys with their firm website, so it surfaces small (<10 lawyer) insurance-defense firms\n// that Google Maps misses, and the listings per firm give a lower-bound attorney count.\nconst cfg = $('Run Configuration').first().json;\nconst SLUG = { FL: 'florida', GA: 'georgia', NC: 'north-carolina', SC: 'south-carolina', VA: 'virginia' };\nconst areas = cfg.directory_practice_areas || ['insurance-defense'];\nconst maxPages = cfg.demo_mode ? 1 : (cfg.justia_max_pages || 15);\nconst out = [];\nfor (const st of (cfg.states || ['FL', 'GA'])) {\n  const s = SLUG[st];\n  if (!s) continue;\n  for (const a of areas) {\n    for (let p = 1; p <= maxPages; p++) {\n      out.push({ json: { state: st, practice_area: a, page: p, url: 'https://www.justia.com/lawyers/' + a + '/' + s + (p > 1 ? '?page=' + p : '') } });\n    }\n  }\n}\nreturn out;\n"
+      },
+      "id": "05f5ad23-a786-4d6c-8592-b4f74d12f7fc",
+      "name": "Build Justia Page List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        1152
+      ],
+      "executeOnce": true,
+      "notes": "Sponsor ask (Nov 11): directory sources beyond Google Maps. Pages: justia_max_pages (default 15) per state; 1 in demo mode."
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "User-Agent",
+              "value": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
+            },
+            {
+              "name": "Accept",
+              "value": "text/html"
+            }
+          ]
+        },
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 2000
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "38f7d352-9d86-4236-a8b6-e4495612ef7f",
+      "name": "API – Justia Directory Pages",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1344,
+        1312
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse Justia listing pages into firm records.\n// Each attorney card is anchored by its profile link (lawyers.justia.com/lawyer/<slug>-<id>); the firm's own website\n// link, phone and address sit inside the card. Attorneys are grouped into firms by website domain.\nconst pages = $('Build Justia Page List').all().map(function (i) { return i.json; });\nconst BAD = /(justia[.]com|google[.]|gstatic|facebook[.]|twitter[.]|[/][/]x[.]com|linkedin[.]|youtube[.]|instagram[.]|avvo[.]|martindale|findlaw|lawyers[.]com|apple[.]com|cornell[.]edu|schema[.]org|w3[.]org|cloudflare|doubleclick|bing[.]com)/i;\nconst FIRM = /([A-Z][A-Za-z&,.' -]{2,70}?,? (?:LLP|L[.]L[.]P[.]|PLLC|LLC|P[.]A[.]|P[.]C[.]|P[.]L[.]|Chartered|Law Group|Law Firm|Law Offices?|Attorneys at Law))(?![A-Za-z])/;\nfunction host(u) { return String(u || '').toLowerCase().trim().replace(/^[a-z]+:[/][/]/, '').replace(/^www[.]/, '').split('/')[0].split('?')[0].split('#')[0].split(':')[0]; }\nfunction strip(s) { return String(s || '').replace(/<script[^]*?<[/]script>/gi, ' ').replace(/<style[^]*?<[/]style>/gi, ' ').replace(/<[^>]*>/g, ' ').replace(/&amp;/g, '&').replace(/&#0?39;|&rsquo;|&#x27;/g, \"'\").replace(/&nbsp;/g, ' ').replace(/\\s+/g, ' ').trim(); }\nfunction prettyDomain(d) { const b = d.split('.')[0]; return b.charAt(0).toUpperCase() + b.slice(1) + ' (' + d + ')'; }\n\nconst lawyers = {};\nconst stats = { pages_requested: pages.length, pages_ok: 0, pages_failed: 0, cards: 0 };\n$input.all().forEach(function (it, idx) {\n  const meta = pages[idx] || {};\n  const j = it.json || {};\n  const html = typeof j.data === 'string' ? j.data : (typeof j.body === 'string' ? j.body : '');\n  if (!html || j.error || html.indexOf('lawyers.justia.com/lawyer/') === -1) { stats.pages_failed++; return; }\n  stats.pages_ok++;\n  const re = /<a[^>]+href=[\"'](https:[/][/]lawyers[.]justia[.]com[/]lawyer[/][a-z0-9-]+-(\\d+))[^\"']*[\"'][^>]*>([^]*?)<[/]a>/gi;\n  const hits = []; let m;\n  while ((m = re.exec(html))) hits.push({ url: m[1], id: m[2], name: strip(m[3]), at: m.index });\n  for (let i = 0; i < hits.length; i++) {\n    const h = hits[i];\n    if (i > 0 && hits[i - 1].id === h.id) continue;\n    let k = i + 1; while (k < hits.length && hits[k].id === h.id) k++;\n    const end = k < hits.length ? hits[k].at : Math.min(html.length, h.at + 15000);\n    const card = html.slice(h.at, end);\n    stats.cards++;\n    const name = hits.slice(i, k).map(function (x) { return x.name; }).filter(function (n) { return n && n.length > 3 && n.length < 80 && !/(profile|website|email|call|preview)/i.test(n); })[0] || '';\n    let site = ''; const hr = /href=[\"'](https?:[/][/][^\"']+)[\"']/gi; let s;\n    while ((s = hr.exec(card))) { if (!BAD.test(s[1])) { site = s[1]; break; } }\n    const tel = ((card.match(/href=[\"']tel:([^\"']+)[\"']/i) || [])[1] || '').replace(/[^0-9+]/g, '');\n    const text = strip(card);\n    const addr = (text.match(/(\\d{1,6} [^|]{3,120}?, ?[A-Z][A-Za-z .'-]+, ?(?:FL|GA|NC|SC|VA) \\d{5})/) || [])[1] || '';\n    const cs = addr.match(/, ?([A-Z][A-Za-z .'-]+), ?(FL|GA|NC|SC|VA) \\d{5}$/) || text.match(/([A-Z][A-Za-z .'-]{2,30}), ?(FL|GA|NC|SC|VA) \\d{5}/);\n    const firm = (text.match(FIRM) || [])[1] || '';\n    const prev = lawyers[h.id];\n    if (prev) { if (!prev.site && site) prev.site = site; continue; }\n    lawyers[h.id] = { id: h.id, name: name, profile: h.url, site: site, phone: tel, address: addr, city: cs ? cs[1].trim() : '', state: (cs && cs[2]) || meta.state, firm: firm.trim(), area: meta.practice_area };\n  }\n});\n\nconst firms = {};\nObject.keys(lawyers).forEach(function (id) {\n  const l = lawyers[id];\n  const dom = host(l.site);\n  const key = dom || ('phone:' + l.phone + '|' + l.state);\n  if (!dom && !l.phone) return;\n  let f = firms[key];\n  if (!f) {\n    f = firms[key] = { directory_source: 'Justia', company_name: l.firm || (dom ? prettyDomain(dom) : (l.name + ' (solo / firm unknown)')), website: dom ? 'https://' + dom + '/' : '',\n      domain: dom, phone: l.phone, address: l.address, city: l.city, state: l.state, practice_area: l.area, directory_attorneys: [], directory_profile_urls: [] };\n  }\n  if (!f.address && l.address) { f.address = l.address; f.city = l.city; }\n  if (l.firm && /[(]/.test(f.company_name)) f.company_name = l.firm;\n  f.directory_attorneys.push(l.name);\n  f.directory_profile_urls.push(l.profile);\n});\nconst out = Object.keys(firms).map(function (k) {\n  const f = firms[k];\n  f.directory_attorney_count = f.directory_attorneys.length;\n  f._justia_stats = Object.assign({ unique_attorneys: Object.keys(lawyers).length, firms: Object.keys(firms).length }, stats);\n  return { json: f };\n});\n// Always emit at least one item so the downstream Merge never waits on an empty branch.\nif (!out.length) out.push({ json: { directory_source: 'Justia', _stats_only: true, _justia_stats: stats } });\nreturn out;\n"
+      },
+      "id": "6708e17a-8ebc-4a88-abe8-7da2b5a9fb34",
+      "name": "Parse Justia Listings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1456,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Firm Universe: every in-scope law firm seen by ANY discovery source this run (before the per-state research cap),\n// upserted into the TrueGrit_Firm_Universe data table so the full FL/GA market accumulates run over run.\nconst cfg = $('Run Configuration').first().json;\nconst states = cfg.states || ['FL', 'GA'];\nconst LAWY = /(attorney|lawyer|law firm|legal)/i;\nconst DEFENSE = /(insurance defense|defense|insurance attorney|insurance)/i;\nconst OFF = /(personal injury|criminal|family law|immigration|divorce|bankruptcy|estate planning|wrongful death|accident|injury lawyer)/i;\nconst SUFFIX = /\\b(llp|llc|pllc|pa|pc|pl|chartered|inc|corp|corporation|law firm|law group|law offices?|attorneys at law|the|of)\\b/g;\nfunction host(u) { return String(u || '').toLowerCase().trim().replace(/^[a-z]+:[/][/]/, '').replace(/^www[.]/, '').split('/')[0].split('?')[0].split('#')[0].split(':')[0]; }\nfunction core(n) { return String(n || '').toLowerCase().replace(/&/g, ' and ').replace(/[^a-z0-9 ]/g, ' ').replace(SUFFIX, ' ').replace(/ +/g, ' ').trim(); }\nconst now = new Date().toISOString();\nconst rows = {};\n$input.all().forEach(function (i) {\n  const r = i.json || {};\n  if (r.kind !== 'place' || states.indexOf(r.state) === -1) return;\n  const types = (r.types || []).join(' | ');\n  if (!LAWY.test(types) && !LAWY.test(r.company_name)) return;\n  if (/permanently closed/i.test(r.open_state || '')) return;\n  const dom = host(r.website);\n  const key = dom || (core(r.company_name) + '|' + r.state);\n  if (!key || key === '|' + r.state) return;\n  let x = rows[key];\n  if (!x) x = rows[key] = { firm_key: key, company_name: r.company_name, domain: dom, website: dom ? 'https://' + dom + '/' : '', state: r.state, city: r.city || '', phone: r.phone || '', address: r.address || '', found_by: [], attorneys: [], urls: [], types: [] };\n  if (x.found_by.indexOf(r.source) === -1) x.found_by.push(r.source);\n  if (/[(]/.test(x.company_name) && r.source !== 'Justia Directory') x.company_name = r.company_name;\n  ['city', 'phone', 'address'].forEach(function (f) { if (!x[f] && r[f]) x[f] = r[f]; });\n  x.attorneys = Array.from(new Set(x.attorneys.concat(r.directory_attorneys || [])));\n  x.urls = Array.from(new Set(x.urls.concat(r.directory_profile_urls || [])));\n  x.types = Array.from(new Set(x.types.concat(r.types || [])));\n});\nreturn Object.keys(rows).map(function (k) {\n  const x = rows[k];\n  const hay = x.company_name + ' ' + x.types.join(' ');\n  return { json: {\n    firm_key: x.firm_key, company_name: x.company_name, domain: x.domain, website: x.website, state: x.state, city: x.city, phone: x.phone, address: x.address,\n    found_by: x.found_by.join(' + '), directory_attorney_count: x.attorneys.length || null, directory_attorneys: x.attorneys.join('; ').slice(0, 2000),\n    directory_profile_urls: x.urls.slice(0, 15).join(' '), practice_signal: OFF.test(x.types[0] || '') || OFF.test(x.company_name) ? 'off-target (PI/criminal/family)' : DEFENSE.test(hay) ? 'defense / insurance leaning' : 'unclear',\n    plaintiff_flag: OFF.test(hay), has_website: !!x.domain, last_seen: now,\n  } };\n});\n"
+      },
+      "id": "c913a9e8-ec32-4327-b1bb-3b8f166b71bf",
+      "name": "Build Firm Universe",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2080,
+        832
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "cachedResultName": "TrueGrit_Firm_Universe",
+          "mode": "id",
+          "value": "3e8qnFTfbax7U9Pf"
+        },
+        "matchType": "allConditions",
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "firm_key",
+              "keyValue": "={{ $json.firm_key }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": null
+        },
+        "options": {}
+      },
+      "id": "b1ab25c2-4c49-4d06-bdce-7bb402ae7d7d",
+      "name": "Upsert Firm Universe",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        2288,
+        832
+      ],
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
-    "Manual Test Run": {
-      "main": [
-        [
-          {
-            "node": "Run Configuration",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
     "Run Configuration": {
       "main": [
         [
           {
             "node": "Sample Mode?",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Weekly Schedule": {
-      "main": [
-        [
-          {
-            "node": "Run Configuration",
             "type": "main",
             "index": 0
           }
@@ -2172,7 +2323,7 @@
         ]
       ]
     },
-    "API \u2013 SerpApi Search": {
+    "API – SerpApi Search": {
       "main": [
         [
           {
@@ -2194,7 +2345,7 @@
         ]
       ]
     },
-    "API \u2013 Apify Maps Discovery": {
+    "API – Apify Maps Discovery": {
       "main": [
         [
           {
@@ -2209,14 +2360,14 @@
       "main": [
         [
           {
-            "node": "Normalize \u2013 Company Discovery Results",
+            "node": "Normalize – Company Discovery Results",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Start \u2013 Discovery Test": {
+    "Start – Discovery Test": {
       "main": [
         [
           {
@@ -2230,12 +2381,17 @@
             "index": 0
           },
           {
-            "node": "API \u2013 SerpApi Search",
+            "node": "API – SerpApi Search",
             "type": "main",
             "index": 0
           },
           {
             "node": "One Apify Search per City",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Justia Page List",
             "type": "main",
             "index": 0
           }
@@ -2312,18 +2468,23 @@
       "main": [
         [
           {
-            "node": "Start \u2013 Discovery Test",
+            "node": "Start – Discovery Test",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Normalize \u2013 Company Discovery Results": {
+    "Normalize – Company Discovery Results": {
       "main": [
         [
           {
             "node": "Read Existing Leads",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Firm Universe",
             "type": "main",
             "index": 0
           }
@@ -2345,7 +2506,7 @@
       "main": [
         [
           {
-            "node": "API \u2013 Apify Maps Discovery",
+            "node": "API – Apify Maps Discovery",
             "type": "main",
             "index": 0
           }
@@ -2402,6 +2563,83 @@
           {
             "node": "Research JSON Schema",
             "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Manual Test Run": {
+      "main": [
+        [
+          {
+            "node": "Read Dashboard Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Weekly Schedule": {
+      "main": [
+        [
+          {
+            "node": "Read Dashboard Settings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Dashboard Settings": {
+      "main": [
+        [
+          {
+            "node": "Run Configuration",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Justia Page List": {
+      "main": [
+        [
+          {
+            "node": "API – Justia Directory Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API – Justia Directory Pages": {
+      "main": [
+        [
+          {
+            "node": "Parse Justia Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Justia Listings": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 4
+          }
+        ]
+      ]
+    },
+    "Build Firm Universe": {
+      "main": [
+        [
+          {
+            "node": "Upsert Firm Universe",
+            "type": "main",
             "index": 0
           }
         ]

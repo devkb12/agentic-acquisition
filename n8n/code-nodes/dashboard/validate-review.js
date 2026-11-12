@@ -2,7 +2,7 @@
 // Workflow: TrueGrit Dashboard (front end)
 
 // Parse the review sent by the page (sent as text/plain to avoid a CORS preflight) and check the access key.
-const KEY = "tg-xIodnjQgfTti";
+const KEY = "__ACCESS_KEY__";
 let b = $json.body;
 if (typeof b === 'string') { try { b = JSON.parse(b); } catch (e) { b = {}; } }
 b = b || {};
