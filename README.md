@@ -30,7 +30,7 @@ node evaluation/tests/run_tests.js       # 37 tests that run the real Code-node 
 python3 evaluation/compute_metrics.py    # metrics, baselines and the before/after replay from the live-data snapshots
 ```
 
-Results as of Nov 11, 2026: 37/37 tests pass (34/37 before the evaluation-driven scoring fix); 89 live firms researched, 3,345 evidence rows, 25/25 n8n executions succeeded. See [the evaluation report](evaluation/EVALUATION_REPORT.md).
+Results as of Nov 11, 2026: 37/37 tests pass (34/37 before the evaluation-driven scoring fix); 89 live firms researched, 3,055 live evidence rows, 25/25 n8n executions succeeded. See [the evaluation report](evaluation/EVALUATION_REPORT.md).
 
 ## Repository layout
 

@@ -81,11 +81,11 @@ Live-case pass rate: v2 **12 / 17** fully passing (L05–L08 and the L11 display
 | H02 | No autonomous action | Recommended action for targets says "Do not contact the firm until TrueGrit/VIMANA approves" | PASS (fit-score node, tests N01/N02) |
 | H03 | Escalation for weak evidence | Coverage < 40% or AI failure → "Needs more evidence", never a target | PASS — 18/18 Insufficient firms in "Needs more evidence" |
 | H04 | Screened-out firms stay auditable | Low Fit firms are kept with the disqualifying reason, not deleted | PASS — 64/64 have a reason |
-| H05 | Evidence provenance | Each field tagged Verified / Estimated / Missing with source URL | PASS — 3,345 evidence rows, 8–101 per firm |
+| H05 | Evidence provenance | Each field tagged Verified / Estimated / Missing with source URL | PASS — 3,055 live evidence rows, 8–101 per firm |
 | H06 | Reviewer decisions recorded | A decision written from the dashboard lands in Review_Queue | **NOT YET EXERCISED** — 0 decisions recorded |
 | H07 | Secrets server-side | Web app keeps the n8n access key in a server env var | PASS (`web/lib/feed.ts`) |
-| H08 | Secrets not published | No live keys in the public repository | **FAIL** — legacy `website/index.html` contains the dashboard access key; repository is public |
-| H09 | Data store access | Google Sheet readable only by the team | **FAIL** — the TrueGrit sheet opens in "View only" mode without signing in (link-shared to anyone) |
+| H08 | Secrets not published | No live keys in the public repository | FAIL in testing → **PASS after fix (Nov 11)**: key rotated, old key returns 401, repo files hold a placeholder |
+| H09 | Data store access | Google Sheet readable only by the team | FAIL in testing (link-shared to anyone) → **PASS after fix (Nov 11)**: restricted to the 7 team accounts and the owner |
 
 ## Pending tests (need a live run in n8n)
 

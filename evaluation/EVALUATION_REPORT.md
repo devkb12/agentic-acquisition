@@ -2,7 +2,7 @@
 **Agentic Acquisition Intelligence · TrueGrit Capital × VIMANA · ASU MSAIB capstone**
 Team: Dev Bhattacharyya (lead), Dareen Alsaeed, Hana Ryu, Madison Schuler, Jorge Cervantes Franco · Evaluation snapshot: November 11, 2026
 
-> **Bottom line.** The prototype runs end to end on live data: 25 of 25 n8n executions succeeded, including weekly scheduled runs. It has researched **89 real Florida and Georgia law firms**, written **3,345 evidence rows** to Google Sheets, and serves them through a live dashboard. It reliably screens out the wrong firms: 64 of 89 were rejected with a stated reason, including 16 that scored ≥ 50 before a hard gate caught them. Its two biggest weaknesses are **coverage**, since Google Maps discovery is 52% plaintiff/criminal and only 2.4% of discovered firms get researched per run, and **firm size**, with attorney count missing for 91% of firms. Testing also showed that 4 of the 6 "High Fit" firms were mixed-practice or only partly insurance-defense. We changed the scoring rule, re-tested it (34/37 → 37/37 executable tests), and replayed it on the live firms. Unambiguous targets now make up 100% of High Fit firms, up from 33%, and no clear target was lost.
+> **Bottom line.** The prototype runs end to end on live data: 25 of 25 n8n executions succeeded, including weekly scheduled runs. It has researched **89 real Florida and Georgia law firms**, written **3,055 live evidence rows** to Google Sheets, and serves them through a live dashboard. It reliably screens out the wrong firms: 64 of 89 were rejected with a stated reason, including 16 that scored ≥ 50 before a hard gate caught them. Its two biggest weaknesses are **coverage**, since Google Maps discovery is 52% plaintiff/criminal and only 2.4% of discovered firms get researched per run, and **firm size**, with attorney count missing for 91% of firms. Testing also showed that 4 of the 6 "High Fit" firms were mixed-practice or only partly insurance-defense. We changed the scoring rule, re-tested it (34/37 → 37/37 executable tests), and replayed it on the live firms. Unambiguous targets now make up 100% of High Fit firms, up from 33%, and no clear target was lost.
 
 ---
 
@@ -16,7 +16,7 @@ Team: Dev Bhattacharyya (lead), Dareen Alsaeed, Hana Ryu, Madison Schuler, Jorge
 | AI classification + research | OpenAI structured output (practice areas, defense vs plaintiff, civil vs criminal, B2B focus, carriers, size); research agent with a page-fetch tool for High/Moderate firms | workflow nodes `AI Classify Firm`, `Research Agent` |
 | Deterministic scoring | Sponsor keyword scorecard v2.3, 7-factor fit score, hard gates, revenue rule of thumb | `n8n/code-nodes/research/*.js` |
 | Public records | Sunbiz entity lookup (entity found for 34.8% of firms), USAspending awards | `merge-public-records.js` |
-| Storage | Google Sheets: Company_Leads, AI_Analysis, Source_Log (3,345 rows), Review_Queue, Run_Log, Dashboard_Summary; n8n data table `TrueGrit_Firm_Universe` | live feed |
+| Storage | Google Sheets: Company_Leads, AI_Analysis, Source_Log (3,055 live rows), Review_Queue, Run_Log, Dashboard_Summary; n8n data table `TrueGrit_Firm_Universe` | live feed |
 | Review UI | Lodestar dashboard (Next.js on Vercel): ranked table, firm files with evidence, review form → Review_Queue | https://truegrit-dashboard.vercel.app |
 
 ## 2. Test design
@@ -88,7 +88,7 @@ The keyword baseline is why an LLM is used. Defense vs plaintiff is a matter of 
 | F9 | **Sample rows left in the data** | 4 fictional firms in Company_Leads and the raw feed | Demo-run rows never purged | Low: the dashboard hides them by default and labels them SAMPLE | Purge the demo rows from the sheet | Mitigated in UI; purge open |
 | F10 | **Inactive entities not gated** | 3 firms with Sunbiz status Inactive | Entity status displayed but not scored | Possible dissolved firm in pipeline | Add as a risk flag | Open |
 | F11 | **HITL loop unexercised** | 0 review decisions recorded | Team has not reviewed yet | Review path unvalidated end to end | Review the 7 queued firms (P03) | Open |
-| F12 | **Secret in public repo** | 1 key in `website/index.html` | Legacy single-file dashboard embeds the feed key | Anyone can read feed / post reviews | Rotate key; remove legacy page; make repo private | Open, **highest priority** |
+| F12 | **Secret in public repo; sheet link-shared** | 1 key in `website/index.html`; sheet readable without sign-in | Legacy single-file dashboard embedded the feed key; sheet sharing too open | Anyone could read the feed / post reviews / read the sheet | Key rotated with zero downtime (old key now 401), removed from repo; sheet restricted to the team | **Fixed (Nov 11)** |
 
 ## 6. Iteration and evidence-based improvement
 
@@ -100,6 +100,7 @@ Every change is a saved version in n8n (`data/workflow_version_history.csv`) and
 | I2 | Oct 29 03:02 | Runs 184–185: 23 of 32 firms "Insufficient Information" (Apify 5-run limit, blocked sites) | Direct homepage fetch fallback, retry of unreadable firms, one Apify search per city | Insufficient rate **71.9% → 22.5%** (runs 186–392) |
 | I3 | Oct 29 03:17 | AI JSON parse failures | Dedicated auto-fix models on output parsers | **No improvement**: AI failure rate 6.2% → 12.5% (small samples). Kept, because failures are still handled safely, but listed as an open problem |
 | I4 | Nov 11 | Sponsor feedback: Maps-only coverage too narrow; attorney counts critical | Justia directory discovery (5th source), directory attorney count as a lower bound, Firm Universe table | Unit tests D01, D07, E04, E05, X03 pass; live effect pending run P01 |
+| I6 | Nov 11 | Security checks H08 and H09 failed | Rotated the access key (n8n accepted both keys during the switch, then the old one was retired); restricted sheet sharing | Old key returns 401; new key and live dashboard verified; sheet no longer public |
 | I5 | Nov 11 | Tests N02, A05, X04 failed; live L05–L08, L11 | High Fit requires practice-fit ≥ 60% and not mixed-side, with an explicit flag; unscaled score below coverage floor | Tests **34/37 → 37/37**; replay on 89 live firms: High **6 → 2**, High precision proxy **33% → 100%**, clean targets lost **0**; low-evidence displayed score 82.8 → 16.4 (`results/v3_replay.csv`) |
 
 *Precision proxy* = the share of High Fit firms that the AI rated both **Defense-side** and **Strong** insurance-defense fit. It is not an independent label. Human review of the 7 queued firms (P03) is the planned check.
@@ -122,8 +123,8 @@ Every change is a saved version in n8n (`data/workflow_version_history.csv`) and
 - **Public business data only.** Firm websites, Google Maps listings, state registries, USAspending, and Justia attorney directory listings (a professional directory). No personal or consumer data is collected, and no LinkedIn scraping (sponsor asked; it is a paid / terms-restricted source).
 - **Credentials** live in n8n's credential store, never in workflow JSON. The workflow export in this repository was scanned for keys before commit.
 - **Web app** keeps the n8n access key in a server environment variable; the browser never sees it (H07).
-- **Open issue: Google Sheet sharing.** The TrueGrit sheet opens in view-only mode without signing in, so anyone with the link can read every lead and score. Restrict sharing to the team and the n8n service account.
-- **Open issue (F12):** the legacy `website/index.html` still embeds the dashboard access key and the repository is public. Fix: rotate the key in the n8n dashboard workflow, delete the legacy page or replace the key, and make the repository private.
+- **Fixed after testing (H09):** the TrueGrit sheet opened view-only without signing in. Sharing is now restricted to the 7 team accounts and the owner account n8n uses.
+- **Fixed after testing (F12 / H08):** the legacy `website/index.html` embedded the dashboard access key in this public repository. The key was rotated on Nov 11: the new key exists only in n8n and a Vercel sensitive environment variable, the old key returns 401, and repository files hold a placeholder.
 - **Data minimisation:** attorney names from Justia are stored only to count listings per firm (lower-bound size).
 
 ## 9. Known limitations
@@ -145,12 +146,10 @@ Every change is a saved version in n8n (`data/workflow_version_history.csv`) and
 
 ## 11. Next steps (before the sponsor demo)
 
-1. Rotate the exposed key and make the repository private (F12); restrict Google Sheet sharing to the team.
-2. **Publish** the workflow in n8n. The Justia source (I4) and the scoring fix (I5) are saved but unpublished, so the weekly scheduled run still uses the Oct 29 version.
-3. Run the workflow in demo mode to validate Justia (P01) and compare FL firm counts against the 47-firm Maps baseline.
-4. Team review of the 7 queued firms plus 10 random screened-out firms, to get real precision labels (P03, limitation 1).
-5. Purge the 4 SAMPLE rows from Company_Leads (F9).
-6. Florida Bar firm search for attorney counts (F3).
+1. Run the workflow in demo mode to validate Justia (P01) and compare FL firm counts against the 47-firm Maps baseline.
+2. Team review of the 7 queued firms plus 10 random screened-out firms, to get real precision labels (P03, limitation 1).
+3. Purge the 4 SAMPLE rows from Company_Leads (F9).
+4. Florida Bar firm search for attorney counts (F3).
 
 ## Reproduce
 
