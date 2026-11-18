@@ -243,6 +243,7 @@ function FirmPageInner({ id }: { id: string }) {
                 <SummaryPanel firm={firm} />
                 <FactorsPanel firm={firm} />
                 <FactsPanel firm={firm} />
+                {firm.enrichment && <AttorneyRevenuePanel firm={firm} />}
                 {(firm.risks.length > 0 || firm.missing.length > 0) && <FlagsPanel firm={firm} />}
                 <EvidencePanel evidence={firm.evidence} />
                 <KeywordChart firm={firm} />
@@ -834,6 +835,128 @@ function ReviewPanel({
   );
 }
 
+function hostOf(u: string): string {
+  const m = u.match(/^https?:\/\/([^/?#]+)/i);
+  return m ? m[1]!.replace(/^www\./, "") : u;
+}
+
+/** Attorney count and revenue estimate from the enrichment workflow, with how each was reached. */
+function AttorneyRevenuePanel({ firm }: { firm: FirmDetail }) {
+  const e = firm.enrichment!;
+  const label = firm.attorneysPlaceholder ? "Placeholder" : (firm.attorneysLabel ?? "Missing");
+  const revValue =
+    firm.revenueLow !== null && firm.revenueHigh !== null
+      ? `${money(firm.revenueLow)} – ${money(firm.revenueHigh)}${firm.revenueBase !== null ? ` (base ${money(firm.revenueBase)})` : ""}`
+      : firm.revenue
+        ? range(firm.revenue)
+        : null;
+  return (
+    <section className="panel" aria-labelledby="att-h">
+      <div className="panel-head">
+        <h2 id="att-h">
+          Attorneys <em>and revenue</em>
+        </h2>
+        {firm.dataCheck && (
+          <span className="tag estimated" title={e.notes.join("\n")}>
+            <span className="dot yellow" aria-hidden /> Needs data check
+          </span>
+        )}
+      </div>
+      <div className="facts-grid">
+        <div className="fact">
+          <div className="l">Attorney count</div>
+          <div className="v">
+            {firm.attorneys !== null ? compact(firm.attorneys) : <span className="none">Not found</span>}
+            {e.range && e.range !== String(firm.attorneys) && <span className="none">range {e.range}</span>}
+            <span className={`tag ${firm.attorneysPlaceholder ? "missing" : firm.attorneysStatus}`}>{label}</span>
+          </div>
+        </div>
+        <div className="fact">
+          <div className="l">Count confidence</div>
+          <div className="v">{firm.attorneysConfidence !== null ? `${firm.attorneysConfidence} / 100` : <span className="none">n/a</span>}</div>
+        </div>
+        <div className="fact">
+          <div className="l">Revenue · {firm.revenueBasis === "Reported" ? "reported" : "modeled estimate"}</div>
+          <div className="v">
+            {revValue ?? <span className="none">Not found</span>}
+            <StatusTag status={revValue ? firm.revenueStatus : "missing"} />
+          </div>
+        </div>
+        <div className="fact">
+          <div className="l">Revenue confidence</div>
+          <div className="v">{e.revenueConfidence ?? <span className="none">n/a</span>}</div>
+        </div>
+      </div>
+      <dl className="context-list left" style={{ marginTop: 14 }}>
+        <dt>How the count was set</dt>
+        <dd>{e.method ?? NO_DATA}</dd>
+        {e.sourceTypes && (
+          <>
+            <dt>Sources checked</dt>
+            <dd>{e.sourceTypes}</dd>
+          </>
+        )}
+        {e.namesMatched.length > 0 && (
+          <>
+            <dt>Names matched to Bar</dt>
+            <dd>{e.namesMatched.join(", ")}</dd>
+          </>
+        )}
+        {e.namesFound.length > 0 && (
+          <>
+            <dt>Attorneys found</dt>
+            <dd>{e.namesFound.join(", ")}</dd>
+          </>
+        )}
+        {firm.revenueBasis !== "Reported" && e.formula && (
+          <>
+            <dt>Revenue calculation</dt>
+            <dd>{e.formula}</dd>
+            <dt>Assumptions</dt>
+            <dd>{e.assumptions ?? NO_DATA}</dd>
+            <dt>Benchmark source</dt>
+            <dd>{e.benchmark ?? NO_DATA}</dd>
+            {e.sponsorComparison && (
+              <>
+                <dt>Sponsor rule of thumb</dt>
+                <dd>{e.sponsorComparison}</dd>
+              </>
+            )}
+          </>
+        )}
+        <dt>Last checked</dt>
+        <dd>{date(e.checkedAt)}</dd>
+      </dl>
+      {e.notes.length > 0 && (
+        <p className="caveat" style={{ marginTop: 12 }}>
+          <span className="dot yellow" aria-hidden />
+          <span>
+            <b>Conflicts or missing evidence:</b> {e.notes.join(" · ")}
+          </span>
+        </p>
+      )}
+      {e.sources.length > 0 && (
+        <p className="muted-note" style={{ marginTop: 10 }}>
+          Sources:{" "}
+          {e.sources.map((u, i) => (
+            <span key={u}>
+              {i > 0 && " · "}
+              <a href={u} target="_blank" rel="noopener noreferrer" className="text-link small">
+                {hostOf(u)}
+              </a>
+            </span>
+          ))}
+        </p>
+      )}
+      {firm.revenueBasis !== "Reported" && (
+        <p className="muted-note" style={{ marginTop: 6 }}>
+          Modeled estimate = attorney count × assumed revenue per attorney. It is not reported revenue.
+        </p>
+      )}
+    </section>
+  );
+}
+
 function ContextPanel({ firm }: { firm: FirmDetail }) {
   return (
     <section className="panel" aria-labelledby="ctx-h">
@@ -858,7 +981,7 @@ function ContextPanel({ firm }: { firm: FirmDetail }) {
       </dl>
       <p className="caveat">
         <span className="dot yellow" aria-hidden />
-        Attorney counts, size and revenue are estimates unless tagged Verified. Revenue ≈ attorneys × $300k–$500k.
+        Attorney counts, size and revenue are estimates unless tagged Verified. Revenue is modeled as attorneys × revenue per attorney (see Attorneys and revenue).
       </p>
     </section>
   );
