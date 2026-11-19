@@ -36,10 +36,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       <div className="toast-stack" role="status" aria-live="polite">
         {toasts.map((t) => (
           <div key={t.id} className={`toast${t.error ? " error" : ""}`}>
-            {t.error ? <CircleAlert size={16} /> : <CircleCheck size={16} />}
+            {t.error ? <CircleAlert size={16} strokeWidth={1.5} /> : <CircleCheck size={16} strokeWidth={1.5} />}
             <p>{t.text}</p>
             <button type="button" onClick={() => dismiss(t.id)} aria-label="Dismiss">
-              <X size={14} />
+              <X size={14} strokeWidth={1.5} />
             </button>
           </div>
         ))}

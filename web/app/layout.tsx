@@ -1,21 +1,17 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Inter } from "next/font/google";
+import { Geist, Geist_Mono, Newsreader } from "next/font/google";
+import { THEME_COLOR, THEME_SCRIPT } from "@/lib/theme";
+import "./tokens.css";
 import "./globals.css";
 
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-mono",
-  subsets: ["latin"],
-});
+const sans = Geist({ variable: "--nf-sans", subsets: ["latin"], display: "swap" });
+const mono = Geist_Mono({ variable: "--nf-mono", subsets: ["latin"], display: "swap" });
+const serif = Newsreader({ variable: "--nf-serif", subsets: ["latin"], display: "swap", axes: ["opsz"] });
 
 export const metadata: Metadata = {
   title: {
     default: "Lodestar · Acquisition intelligence",
-    template: "%s · Lodestar",
+    template: "Lodestar · %s",
   },
   description:
     "Lodestar researches Florida and Georgia insurance-defense law firms for TrueGrit Capital and VIMANA. AI researches. People decide.",
@@ -23,13 +19,19 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#07111f",
-  colorScheme: "dark",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_COLOR.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLOR.dark },
+  ],
+  colorScheme: "light dark",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={`${inter.variable} ${geistMono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable} ${serif.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body>
         <a className="skip-link" href="#main">
           Skip to content

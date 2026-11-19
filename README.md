@@ -55,7 +55,7 @@ Results as of Nov 11, 2026: 37/37 tests pass (34/37 before the evaluation-driven
 
 ## The web app
 
-`web/` is a Next.js 16 app (React 19, TypeScript, one global stylesheet). Its server routes read the n8n data feed and send review decisions to n8n, so the access key stays on the server and never reaches the browser. The joined feed is cached in memory for five minutes, so most visits load in about a second instead of waiting for n8n to read all six tabs.
+`web/` is a Next.js 16 app (React 19, TypeScript, plain CSS on design tokens). It follows an editorial design system: serif headings, small sans-serif text, one blue accent, hairline structure, light and dark themes, documented in [`web/docs/ui.md`](web/docs/ui.md) and checked by `npm run check`. Its server routes read the n8n data feed and send review decisions to n8n, so the access key stays on the server and never reaches the browser. The joined feed is cached in memory for five minutes, so most visits load in about a second instead of waiting for n8n to read all six tabs.
 
 | Route | What it does |
 |---|---|

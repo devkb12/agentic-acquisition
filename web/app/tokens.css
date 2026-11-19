@@ -1,0 +1,225 @@
+/* Lodestar design tokens: the only file allowed to hold raw color values.
+   Light is the default; `.dark` on <html> switches every token at once.
+   Components read tokens only (enforced by `npm run check`). */
+
+:root {
+  color-scheme: light;
+
+  /* Surfaces */
+  --paper: #fdfdfc;            /* page background */
+  --panel: #ffffff;            /* cards, mockup windows, dialogs, popovers */
+  --panel-sunk: #f8fafc;       /* diagram scenes, mockup footers, inset wells */
+  --blue-paper: #f2f5ff;       /* soft accent fill: chips, selected rows */
+  --stage: #172c43;            /* deep navy band behind the workspace demo; once per page */
+
+  /* Ink */
+  --ink: #18212b;
+  --ink-strong: #162332;
+  --muted: #59616b;
+  --lead: #596674;
+  --label: #526171;
+
+  /* Accent */
+  --accent: #0052ff;
+  --accent-hover: #003dc2;
+  --accent-ink: #ffffff;
+  --accent-soft-ink: #1649b0;
+  --accent-soft-line: #cddaf4;
+
+  /* Lines */
+  --line: #dcdfe1;
+  --line-section: #e0e4e8;
+  --line-panel: #e4e8ed;
+  --line-card: #d6dce2;
+  --dot-grid: #c9d5e2;
+
+  /* Diagram scene */
+  --bp-ink: #203b62;
+  --bp-ink-2: #244d85;
+  --bp-text: #45617f;
+  --bp-muted: #526c8c;
+  --bp-edge: #9cb6d9;
+  --bp-plate-face: #f8fbff;
+  --bp-plate-edge: #c2d1e6;
+
+  /* Deep stage (same in both themes) */
+  --stage-panel: #11283f;
+  --stage-raised: #203c57;
+  --stage-line: #31465b;
+  --stage-line-strong: #385067;
+  --stage-ink: #d1deeb;
+  --stage-muted: #c0cddb;
+
+  /* Mockup details */
+  --bubble: #eef2f6;
+  --bubble-line: #e2e7ed;
+  --review: #2559b4;
+  --connected: #536354;
+  --segment-bg: #ffffff;
+  --segment-ink: #28313b;
+  --quiet: #5c6a7c;
+  --quiet-glyph: #697d98;
+  --field-line: #7d8895;
+
+  /* Status: text colors pass AA on paper; *-fill is for dots, bars and outlines only */
+  --success: #315c4d;
+  --success-fill: #54816f;
+  --warning: #8a5a1c;
+  --warning-fill: #a8742c;
+  --danger: #a34d38;
+  --danger-fill: #c96a52;
+  --info: var(--accent);
+
+  /* Data visualisation, in this order */
+  --viz-1: var(--accent);
+  --viz-2: #4f6b95;
+  --viz-3: #54816f;
+  --viz-4: #a8742c;
+  --viz-5: #8a94a3;
+
+  --focus-ring: var(--accent);
+  --selection-bg: #cfdcff;
+  --selection-ink: var(--ink);
+  --scrim: rgba(22, 35, 50, 0.36);
+  --row-hover: color-mix(in srgb, var(--blue-paper) 55%, transparent);
+
+  /* Type */
+  --font-serif: var(--nf-serif), Georgia, serif;
+  --font-sans: var(--nf-sans), Arial, sans-serif;
+  --font-mono: var(--nf-mono), ui-monospace, "SF Mono", Menlo, monospace;
+
+  /* Shape and depth */
+  --r-button: 3px;
+  --r-control: 4px;
+  --r-inset: 6px;
+  --r-card: 7px;
+  --r-modal: 9px;
+
+  --shadow-hair: 0 1px 3px rgba(33, 60, 92, 0.086);
+  --shadow-surface: 0 5px 12px rgba(49, 88, 133, 0.024);
+  --shadow-card: 0 3px 6px rgba(23, 43, 67, 0.063), 0 20px 40px -28px rgba(23, 43, 67, 0.19);
+  --shadow-window: 0 3px 5px rgba(7, 21, 33, 0.094), 0 18px 36px -12px rgba(7, 21, 33, 0.282);
+  --shadow-float: 0 4px 10px rgba(7, 21, 33, 0.14), 0 16px 32px -12px rgba(7, 21, 33, 0.314);
+  --shadow-modal: 0 25px 100px rgba(16, 32, 55, 0.25);
+
+  /* Layout */
+  --wrap: min(1040px, 100% - 96px);
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --s-10: 144px;
+  --header-h: 90px;
+
+  /* Motion */
+  --dur-state: 120ms;
+  --dur-hover: 150ms;
+  --dur-enter: 200ms;
+  --dur-arrive: 230ms;
+  --dur-move: 320ms;
+  --dur-reveal: 600ms;
+  --dur-ambient: 900ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --ease-emphasized: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-exit: cubic-bezier(0.4, 0, 1, 1);
+}
+
+@media (max-width: 700px) {
+  :root { --wrap: min(1040px, 100% - 40px); }
+}
+
+.dark {
+  color-scheme: dark;
+
+  --paper: #11151b;
+  --panel: #191f28;
+  --panel-sunk: #151b23;
+  --blue-paper: #1a2943;
+  --stage: #172c43;
+
+  --ink: #e8edf4;
+  --ink-strong: #e8edf4;
+  --muted: #a2adbb;
+  --lead: #a2adbb;
+  --label: #a2adbb;
+
+  --accent: #86adff;
+  --accent-hover: #abc6ff;
+  --accent-ink: #111b2d;
+  --accent-soft-ink: #86adff;
+  --accent-soft-line: #3c5680;
+
+  --line: #303944;
+  --line-section: #303944;
+  --line-panel: #303944;
+  --line-card: #303944;
+  --dot-grid: #33445b;
+
+  --bp-ink: #dbe7f8;
+  --bp-ink-2: #dbe7f8;
+  --bp-text: #a6b6ce;
+  --bp-muted: #a6b6ce;
+  --bp-edge: #55729a;
+  --bp-plate-face: #162234;
+  --bp-plate-edge: #33445b;
+
+  --bubble: #253144;
+  --bubble-line: #354458;
+  --review: #86adff;
+  --connected: #a4c8b5;
+  --segment-bg: #303a49;
+  --segment-ink: #e8edf4;
+  --quiet: #a2adbb;
+  --quiet-glyph: #a2adbb;
+  --field-line: #6a7684;
+
+  --success: #a4d4b9;
+  --success-fill: #86c5a6;
+  --warning: #d2a467;
+  --warning-fill: #d2a467;
+  --danger: #e4a48f;
+  --danger-fill: #e4a48f;
+
+  --viz-2: #8fa7cc;
+  --viz-3: #86c5a6;
+  --viz-4: #d2a467;
+  --viz-5: #8a94a3;
+
+  --selection-bg: #2e4b78;
+  --selection-ink: #f4f7ff;
+  --scrim: rgba(5, 8, 12, 0.62);
+
+  --shadow-card: 0 3px 6px rgba(8, 14, 24, 0.15), 0 20px 40px -28px rgba(8, 14, 24, 0.314);
+  --shadow-surface: 0 5px 12px rgba(7, 13, 22, 0.15);
+  --shadow-float: 0 3px 8px rgba(8, 14, 24, 0.15), 0 12px 28px rgba(8, 14, 24, 0.314);
+  --shadow-hair: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Print always uses the light palette. */
+@media print {
+  .dark {
+    color-scheme: light;
+    --paper: #ffffff;
+    --panel: #ffffff;
+    --panel-sunk: #ffffff;
+    --blue-paper: #ffffff;
+    --ink: #111111;
+    --ink-strong: #111111;
+    --muted: #444444;
+    --lead: #444444;
+    --label: #444444;
+    --accent: #111111;
+    --line: #cccccc;
+    --line-section: #cccccc;
+    --line-panel: #cccccc;
+    --line-card: #cccccc;
+    --success: #315c4d;
+    --warning: #8a5a1c;
+    --danger: #a34d38;
+  }
+}

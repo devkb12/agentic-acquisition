@@ -6,11 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "check": "node scripts/ui-check.mjs"
   },
   "dependencies": {
     "lucide-react": "1.60.0",
-    "motion": "14.4.0",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0"

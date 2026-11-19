@@ -2,30 +2,7 @@
 
 // Firm file (/firms/[id]): score ring, why it matches, evidence, keyword chart,
 // public records, recommended next action, human review and context.
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowUpRight,
-  Bookmark,
-  BookmarkCheck,
-  CircleAlert,
-  CircleCheck,
-  Compass,
-  FileText,
-  Flag,
-  Gavel,
-  Globe,
-  Landmark,
-  ListChecks,
-  MapPin,
-  Printer,
-  RefreshCw,
-  ShieldCheck,
-  Sparkles,
-  TriangleAlert,
-  Building2,
-  ScrollText,
-} from "lucide-react";
+import { Bookmark, BookmarkCheck, Building2, CircleAlert, CircleCheck, FileText, Flag, Globe, Landmark, MapPin } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
@@ -35,7 +12,8 @@ import { NO_DATA, compact, date, money, phone, place, range, scorePhrase } from 
 import type { Decision, Evidence, FieldStatus, FirmDetail } from "@/lib/types";
 import { ToastProvider, useToast } from "../toast";
 import { TOUR_STEPS, Tour } from "../tour";
-import { DataBadge, FitPill, PathEyebrow, ScoreBar, StatusTag, stageClass } from "../ui";
+import { Menu } from "../site-chrome";
+import { DataBadge, FitPill, Label, PathLabel, ScoreBar, ScoreRing, StarMark, StatusTag, stageClass } from "../ui";
 
 export function FirmPage({ id }: { id: string }) {
   return (
@@ -98,11 +76,10 @@ function FirmPageInner({ id }: { id: string }) {
   };
 
   return (
-    <div style={{ background: "var(--app-bg)", minHeight: "100vh" }}>
-      <header className="detail-bar">
-        <Link href="/app" className="brand-tile" aria-label="Back to the workspace">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-mono.svg" alt="" width={20} height={20} />
+    <div>
+      <header className="app-bar">
+        <Link href="/app" className="wordmark-link wordmark small" aria-label="Back to the workspace">
+          <StarMark />
         </Link>
         <nav className="crumbs" aria-label="Breadcrumb">
           <Link href="/app">Lodestar</Link>
@@ -111,37 +88,48 @@ function FirmPageInner({ id }: { id: string }) {
           <span className="sep">/</span>
           <b>{firm?.name ?? "Firm file"}</b>
         </nav>
-        <div className="right" style={{ marginLeft: "auto", display: "flex", gap: 10, alignItems: "center" }}>
+        <div className="right">
           <button type="button" className="tour-launch" onClick={() => onTourIndex(TOUR_STEPS.findIndex((s) => s.page === "detail"))} disabled={!firm}>
-            <Compass size={14} aria-hidden /> <span className="lbl">Take the tour</span>
+            <span className="lbl">Take the tour</span> <span aria-hidden>↗</span>
           </button>
           <DataBadge label="TrueGrit sheet" />
+          <Menu framed label="Display settings" links={[{ href: "/app", label: "Workspace" }, { href: "/app/data", label: "Data explorer" }]} />
         </div>
       </header>
 
       <main id="main" className="detail">
-        <Link href="/app" className="text-link small muted">
-          <ArrowLeft size={13} /> Back to all firms
-        </Link>
+        <div className="back-row">
+          <Link href="/app" className="text-link muted">
+            Back to all firms
+          </Link>
+        </div>
 
         {!firm && !error && (
-          <div className="phase" role="status" style={{ minHeight: "60vh" }}>
-            <div className="phase-box">
-              <span className="spinner" />
-              <h2>Opening the firm file…</h2>
-              <p>Joining this firm&apos;s lead, analysis, review and evidence records.</p>
+          <div className="loading-shell" role="status" aria-label="Opening the firm file" style={{ marginTop: 12 }}>
+            <div className="sk-head">
+              <span className="skeleton-line" style={{ width: 140 }} />
+              <span className="skeleton-line" style={{ width: "60%", height: 26 }} />
+              <span className="skeleton-line" style={{ width: "40%" }} />
+            </div>
+            <p className="status-text">
+              <span className="spinner small" aria-hidden /> Joining this firm&apos;s lead, analysis, review and evidence records.
+            </p>
+            <div className="detail-grid">
+              <div className="skeleton" style={{ height: 420 }} />
+              <div className="skeleton" style={{ height: 300 }} />
             </div>
           </div>
         )}
         {error && !firm && (
           <div className="phase" style={{ minHeight: "60vh" }}>
             <div className="phase-box">
+              <h1>This firm file did not open.</h1>
               <div className="alert" role="alert">
-                <CircleAlert size={16} />
+                <CircleAlert size={16} strokeWidth={1.5} />
                 <span>{error}</span>
               </div>
-              <button type="button" className="button button-small" onClick={load}>
-                <RefreshCw size={14} /> Try again
+              <button type="button" className="button button-small button-outline" onClick={load}>
+                Try again <span aria-hidden>↻</span>
               </button>
             </div>
           </div>
@@ -155,7 +143,7 @@ function FirmPageInner({ id }: { id: string }) {
             </div>
             <div className="detail-head">
               <div>
-                <PathEyebrow parts={["Firm file", firm.sample ? "Sample data" : firm.state || "Research"]} />
+                <PathLabel parts={["Firm file", firm.sample ? "Sample data" : firm.state || "Research"]} />
                 <h1>{firm.name}</h1>
                 <div className="facts">
                   <FitPill fit={firm.fit} />
@@ -176,23 +164,20 @@ function FirmPageInner({ id }: { id: string }) {
                     <>
                       <span className="sep">·</span>
                       <a href={firm.website} target="_blank" rel="noopener noreferrer" className="text-link small">
-                        {firm.domain ?? "Website"} <ArrowUpRight size={12} />
+                        {firm.domain ?? "Website"} <span aria-hidden>↗</span>
                       </a>
                     </>
                   )}
                 </div>
               </div>
               <div className="score-ring-wrap" data-tour="detail-score">
-                <div
-                  className={`score-ring${firm.fit === "Insufficient Information" ? " muted" : ""}`}
-                  style={{ ["--p" as string]: firm.score ?? 0 }}
-                  role="img"
-                  aria-label={`Fit score ${firm.score ?? "not available"} out of 100`}
-                >
-                  <span>{firm.score ?? "—"}</span>
-                </div>
+                <ScoreRing
+                  value={firm.score}
+                  muted={firm.fit === "Insufficient Information"}
+                  label={`Fit score ${firm.score ?? "not available"} out of 100`}
+                />
                 <div>
-                  <div className="label">Lodestar fit score</div>
+                  <Label grey>Lodestar fit score</Label>
                   <div className="phrase">{scorePhrase(firm.fit)}</div>
                   <div className="cov">
                     {firm.coverage !== null ? `${firm.coverage}% of the model had evidence` : "Coverage unknown"}
@@ -203,10 +188,9 @@ function FirmPageInner({ id }: { id: string }) {
 
             <div className="action-row">
               <button type="button" className="button button-small button-outline" aria-pressed={saved} onClick={toggleSave}>
-                {saved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />} {saved ? "Saved" : "Save"}
+                {saved ? <BookmarkCheck size={14} strokeWidth={1.5} /> : <Bookmark size={14} strokeWidth={1.5} />} {saved ? "Saved" : "Save"}
               </button>
-              <label className="select-with-icon">
-                <ListChecks size={14} aria-hidden />
+              <label className="select-wrap">
                 <span className="sr-only">Review stage</span>
                 <select
                   className={`stage-select ${stageClass(firm.stage)}`}
@@ -227,14 +211,14 @@ function FirmPageInner({ id }: { id: string }) {
                 </select>
               </label>
               <button type="button" className="button button-small button-outline" onClick={() => window.print()}>
-                <Printer size={14} /> Export brief
+                Export brief <span aria-hidden>↗</span>
               </button>
               <button
                 type="button"
-                className="button button-small push"
+                className="text-link push"
                 onClick={() => reviewRef.current?.scrollIntoView({ block: "start", behavior: "smooth" })}
               >
-                Record decision <ArrowUpRight size={14} />
+                Record a decision <span aria-hidden>→</span>
               </button>
             </div>
 
@@ -252,12 +236,7 @@ function FirmPageInner({ id }: { id: string }) {
 
               <aside className="detail-aside" aria-label="Review">
                 <div className="panel next-panel">
-                  <span className="icon-tile" aria-hidden>
-                    <ArrowRight size={16} />
-                  </span>
-                  <div className="eyebrow" style={{ marginTop: 12 }}>
-                    Recommended next action
-                  </div>
+                  <Label>Recommended next action</Label>
                   <p className="sentence">{firstSentence(firm.recommendedAction) ?? "Review the evidence and record a decision."}</p>
                   <p className="detail-line">
                     {firm.review?.verify.length
@@ -272,7 +251,7 @@ function FirmPageInner({ id }: { id: string }) {
                       document.getElementById("rv-notes")?.focus({ preventScroll: true });
                     }}
                   >
-                    Add a note <ArrowRight size={13} />
+                    Add a note <span aria-hidden>→</span>
                   </button>
                 </div>
                 <ReviewPanel
@@ -290,7 +269,6 @@ function FirmPageInner({ id }: { id: string }) {
             </div>
 
             <p className="footnote">
-              <ShieldCheck size={16} />
               Lodestar is a decision-support tool for TrueGrit Capital and VIMANA. Verify the source before acting. Nothing here
               means a firm is for sale or approved for outreach.
             </p>
@@ -312,16 +290,11 @@ function firstSentence(s: string | null): string | null {
 
 function SummaryPanel({ firm }: { firm: FirmDetail }) {
   return (
-    <section className="panel summary-panel" aria-labelledby="sum-h">
-      <div className="panel-head" style={{ marginBottom: 0 }}>
-        <h2 id="sum-h">
-          <span className="icon-tile" aria-hidden>
-            <Sparkles size={15} />
-          </span>
-          Summary
-        </h2>
+    <section className="panel" aria-labelledby="sum-h">
+      <div className="panel-head">
+        <h2 id="sum-h">Summary</h2>
         <span className="ai-label">
-          <span className="dot indigo" aria-hidden /> Written by OpenAI from the firm&apos;s website text
+          <span className="dot ai" aria-hidden /> Written by OpenAI from the firm&apos;s website text
         </span>
       </div>
       <p className="lead-text">{firm.summary ?? "No AI summary was recorded for this firm."}</p>
@@ -345,9 +318,7 @@ function FactorsPanel({ firm }: { firm: FirmDetail }) {
   return (
     <section className="panel" aria-labelledby="why-h">
       <div className="panel-head">
-        <h2 id="why-h">
-          Why it <em>matches</em>
-        </h2>
+        <h2 id="why-h">Why it matches</h2>
         <span className="muted-note">
           {firm.score !== null ? `${firm.score}/100` : "No score"} · {firm.coverage ?? "?"}% of the model scored
         </span>
@@ -390,9 +361,7 @@ function FactsPanel({ firm }: { firm: FirmDetail }) {
   return (
     <section className="panel" aria-labelledby="facts-h">
       <div className="panel-head">
-        <h2 id="facts-h">
-          Practice, size <em>and entity</em>
-        </h2>
+        <h2 id="facts-h">Practice, size and entity</h2>
       </div>
       <div className="facts-grid">
         <Fact label="Defense vs plaintiff" value={firm.defenseVsPlaintiff} status="estimated" />
@@ -416,21 +385,21 @@ function FactsPanel({ firm }: { firm: FirmDetail }) {
           status="verified"
         />
       </div>
-      <div style={{ marginTop: 14, display: "grid", gap: 8, fontSize: 12, color: "var(--soft)" }}>
+      <div className="fact-lines">
         <div>
-          <b style={{ color: "var(--text)" }}>Insurance keyword score: </b>
+          <span className="k">Insurance keyword score: </span>
           {firm.insuranceScore !== null ? (firm.insuranceScore > 0 ? "+" : "") + firm.insuranceScore : "n/a"}
           {firm.insuranceBand && <span className="muted-note"> · {firm.insuranceBand}</span>}
         </div>
         {firm.carriers && (
           <div>
-            <span className="muted-note">Carriers named on the website: </span>
+            <span className="k">Carriers named on the website: </span>
             {firm.carriers}
           </div>
         )}
         {firm.leadership && (
           <div>
-            <span className="muted-note">Leadership named publicly: </span>
+            <span className="k">Leadership named publicly: </span>
             {firm.leadership}
           </div>
         )}
@@ -443,22 +412,23 @@ function FlagsPanel({ firm }: { firm: FirmDetail }) {
   return (
     <section className="panel" aria-labelledby="flags-h">
       <div className="panel-head">
-        <h2 id="flags-h">
-          Flags <em>and gaps</em>
-        </h2>
+        <h2 id="flags-h">Flags and gaps</h2>
       </div>
       {firm.risks.length > 0 && (
         <ul className="flag-list">
           {firm.risks.map((r) => (
             <li key={r}>
-              <Flag size={13} /> <span>{r}</span>
+              <span className="glyph" aria-hidden>
+                !
+              </span>
+              <span>{r}</span>
             </li>
           ))}
         </ul>
       )}
       {firm.missing.length > 0 && (
         <p className="muted-note" style={{ marginTop: 12 }}>
-          <b style={{ color: "var(--soft)" }}>Missing:</b> {firm.missing.join("; ")}
+          Missing: {firm.missing.join("; ")}
         </p>
       )}
       <p className="muted-note" style={{ marginTop: 6 }}>
@@ -487,11 +457,9 @@ function EvidencePanel({ evidence }: { evidence: Evidence[] }) {
     <section className="panel" aria-labelledby="ev-h" data-tour="detail-evidence">
       <div className="panel-head">
         <h2 id="ev-h">
-          Evidence <em>({evidence.length})</em>
+          Evidence <span className="count">{evidence.length} records</span>
         </h2>
-        <span className="source-stamp">
-          <ScrollText size={12} /> Sourced records
-        </span>
+        <span className="source-stamp">✓ Each row links to its source</span>
       </div>
       <div className="evidence-filters" role="group" aria-label="Filter evidence">
         <button type="button" className="chip" aria-pressed={!status} onClick={() => setStatus("")}>
@@ -509,7 +477,7 @@ function EvidencePanel({ evidence }: { evidence: Evidence[] }) {
           return (
             <div key={e.id} className="ev">
               <span className="ev-icon" aria-hidden>
-                <Icon size={14} />
+                <Icon size={14} strokeWidth={1.5} />
               </span>
               <div style={{ minWidth: 0 }}>
                 <div className="ev-title">
@@ -522,7 +490,7 @@ function EvidencePanel({ evidence }: { evidence: Evidence[] }) {
               </div>
               {e.url ? (
                 <a className="ev-link" href={e.url} target="_blank" rel="noopener noreferrer" aria-label={`Open source for ${e.label}`}>
-                  <ArrowUpRight size={15} />
+                  <span aria-hidden>↗</span>
                 </a>
               ) : (
                 <span />
@@ -535,7 +503,7 @@ function EvidencePanel({ evidence }: { evidence: Evidence[] }) {
       )}
       {rows.length > EV_LIMIT && (
         <button type="button" className="text-link small show-more" onClick={() => setAll((a) => !a)}>
-          {all ? "Show fewer" : `Show all ${rows.length}`} <ArrowRight size={13} />
+          {all ? "Show fewer" : `Show all ${rows.length}`} <span aria-hidden>→</span>
         </button>
       )}
     </section>
@@ -551,9 +519,7 @@ function KeywordChart({ firm }: { firm: FirmDetail }) {
   return (
     <section className="panel" aria-labelledby="kw-h">
       <div className="panel-head">
-        <h2 id="kw-h">
-          Insurance keyword <em>matches</em>
-        </h2>
+        <h2 id="kw-h">Insurance keyword matches</h2>
         <span className="muted-note">Net score {firm.insuranceScore !== null ? (firm.insuranceScore > 0 ? "+" : "") + firm.insuranceScore : "n/a"}</span>
       </div>
       <div className="chart" role="img" aria-label={TIERS.map((w, i) => `${counts[i]} ${counts[i] === 1 ? "term" : "terms"} worth ${w > 0 ? "+" : ""}${w}`).join(", ")}>
@@ -581,6 +547,16 @@ function KeywordChart({ firm }: { firm: FirmDetail }) {
           ))}
         </div>
       </div>
+      <p className="chart-key" aria-hidden>
+        <span>
+          <i className="pos" />
+          Adds to the score
+        </span>
+        <span>
+          <i className="neg" />
+          Subtracts from the score
+        </span>
+      </p>
       <p className="chart-caption">
         Terms found on the firm&apos;s website, grouped by sponsor scorecard weight (v2.3). Each term counts once.
         {firm.terms.length > 0 && <> Found: {firm.terms.map((t) => t.term).join(", ")}.</>}
@@ -629,9 +605,7 @@ function RecordsPanel({ firm }: { firm: FirmDetail }) {
   return (
     <section className="panel" aria-labelledby="rec-h">
       <div className="panel-head">
-        <h2 id="rec-h">
-          Public <em>records</em>
-        </h2>
+        <h2 id="rec-h">Public records</h2>
       </div>
       <div className="table-scroll">
         <table className="records">
@@ -656,7 +630,7 @@ function RecordsPanel({ firm }: { firm: FirmDetail }) {
                 <td>
                   {r.url && (
                     <a href={r.url} target="_blank" rel="noopener noreferrer" aria-label={`Open ${r.source} record`}>
-                      <ArrowUpRight size={14} />
+                      <span aria-hidden>↗</span>
                     </a>
                   )}
                 </td>
@@ -748,19 +722,17 @@ function ReviewPanel({
   return (
     <section className="panel review-panel" id="review" ref={panelRef} aria-labelledby="rev-h" data-tour="detail-review" style={{ scrollMarginTop: 76 }}>
       <div className="panel-head" style={{ marginBottom: 0 }}>
-        <h2 id="rev-h">
-          <span className="icon-tile" aria-hidden style={{ width: 32, height: 32 }}>
-            <ShieldCheck size={15} />
-          </span>
-          Human review
-        </h2>
+        <h2 id="rev-h">Human review</h2>
       </div>
       <p className="promise">
         <b>AI researches. People decide.</b> Check the evidence, correct anything wrong, and record your reasoning.
       </p>
       {firm.queuedFit && (
         <div className="changed-note">
-          <TriangleAlert size={14} /> Queued as {firm.queuedFit}; a later run rated it {firm.fit}.
+          <span className="glyph" aria-hidden>
+            ◦
+          </span>{" "}
+          Queued as {firm.queuedFit}; a later run rated it {firm.fit}.
         </div>
       )}
       {R?.decision && (
@@ -811,23 +783,23 @@ function ReviewPanel({
         </div>
         {err && (
           <div className="alert" role="alert">
-            <CircleAlert size={15} /> <span>{err}</span>
+            <CircleAlert size={15} strokeWidth={1.5} /> <span>{err}</span>
           </div>
         )}
         <button type="submit" className="button" disabled={busy || !decision}>
           {busy ? (
             <>
-              <span className="spinner small" /> Saving…
+              <span className="spinner small" aria-hidden /> Saving…
             </>
           ) : (
             <>
-              <Gavel size={15} /> Save decision
+              Save decision <span aria-hidden>→</span>
             </>
           )}
         </button>
         {confirmed && (
           <p className="confirm-line" role="status">
-            <CircleCheck size={14} /> {confirmed}
+            <CircleCheck size={14} strokeWidth={1.5} /> {confirmed}
           </p>
         )}
       </form>
@@ -853,12 +825,10 @@ function AttorneyRevenuePanel({ firm }: { firm: FirmDetail }) {
   return (
     <section className="panel" aria-labelledby="att-h">
       <div className="panel-head">
-        <h2 id="att-h">
-          Attorneys <em>and revenue</em>
-        </h2>
+        <h2 id="att-h">Attorneys and revenue</h2>
         {firm.dataCheck && (
           <span className="tag estimated" title={e.notes.join("\n")}>
-            <span className="dot yellow" aria-hidden /> Needs data check
+            Needs data check
           </span>
         )}
       </div>
@@ -929,7 +899,7 @@ function AttorneyRevenuePanel({ firm }: { firm: FirmDetail }) {
       </dl>
       {e.notes.length > 0 && (
         <p className="caveat" style={{ marginTop: 12 }}>
-          <span className="dot yellow" aria-hidden />
+          <span className="dot warn" aria-hidden />
           <span>
             <b>Conflicts or missing evidence:</b> {e.notes.join(" · ")}
           </span>
@@ -942,7 +912,7 @@ function AttorneyRevenuePanel({ firm }: { firm: FirmDetail }) {
             <span key={u}>
               {i > 0 && " · "}
               <a href={u} target="_blank" rel="noopener noreferrer" className="text-link small">
-                {hostOf(u)}
+                {hostOf(u)} ↗
               </a>
             </span>
           ))}
@@ -980,7 +950,7 @@ function ContextPanel({ firm }: { firm: FirmDetail }) {
         <dd>{firm.sample ? "Sample (fictional)" : "Live"}</dd>
       </dl>
       <p className="caveat">
-        <span className="dot yellow" aria-hidden />
+        <span className="dot warn" aria-hidden />
         Attorney counts, size and revenue are estimates unless tagged Verified. Revenue is modeled as attorneys × revenue per attorney (see Attorneys and revenue).
       </p>
     </section>

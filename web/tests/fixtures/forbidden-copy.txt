@@ -1,0 +1,7 @@
+# One forbidden string per line (case-insensitive). The UI check fails if any
+# appears in app source, public files or the built output. Lines starting with # are ignored.
+thinkn
+thinkⁿ
+Managed AI
+AI-forward
+lie-gold

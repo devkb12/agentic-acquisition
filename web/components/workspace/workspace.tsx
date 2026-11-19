@@ -2,22 +2,7 @@
 
 // The workspace (/app): sidebar, top bar, five views, onboarding wizard,
 // product tour and firm lookup.
-import {
-  ArrowLeft,
-  ArrowRight,
-  Bookmark,
-  CircleAlert,
-  Compass,
-  Database,
-  LayoutDashboard,
-  Plus,
-  RefreshCw,
-  ShieldCheck,
-  SquareKanban,
-  Trophy,
-  UserRound,
-  Laptop,
-} from "lucide-react";
+import { ArrowLeft, Bookmark, CircleAlert, Database, LayoutDashboard, SquareKanban, Trophy, UserRound, Laptop } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -36,7 +21,8 @@ import { SIZE_BANDS, firstName, stateLabels } from "@/lib/profile";
 import type { FirmSummary, WorkspaceData } from "@/lib/types";
 import { ToastProvider, useToast } from "../toast";
 import { TOUR_STEPS, Tour, type TourView } from "../tour";
-import { DataBadge, PathEyebrow } from "../ui";
+import { Menu, ThemeSwitch } from "../site-chrome";
+import { DataBadge, Label, PathLabel, Wordmark } from "../ui";
 import { FirmTable } from "./firm-table";
 import { LookupModal } from "./lookup-modal";
 import { OutcomesView, PipelineView, ProfileView, ViewHead } from "./views";
@@ -183,15 +169,11 @@ function WorkspaceInner() {
   return (
     <div className="app">
       <aside className="sidebar" aria-label="Workspace" inert={dialogOpen}>
-        <Link href="/" className="brand">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.svg" alt="" width={30} height={30} />
-          <span>
-            Lodestar
-            <small>BETA</small>
-          </span>
+        <Link href="/" className="wordmark-link side-brand" aria-label="Lodestar home">
+          <Wordmark small />
+          <span className="beta">Beta</span>
         </Link>
-        <div className="side-label">Workspace</div>
+        <div className="side-label">Reviewer</div>
         <button type="button" className="switcher" onClick={() => goView("profile")} disabled={!profile}>
           <span className="avatar-square" aria-hidden>
             {profile ? initials(profile.name) : "–"}
@@ -205,7 +187,7 @@ function WorkspaceInner() {
         <nav className="side-nav" data-tour="nav" aria-label="Views">
           {VIEWS.map((v) => (
             <button key={v.id} type="button" aria-current={view === v.id ? "page" : undefined} onClick={() => goView(v.id)} title={v.label}>
-              <v.icon size={16} aria-hidden />
+              <v.icon size={16} strokeWidth={1.5} aria-hidden />
               <span className="lbl">{v.label}</span>
               {data && counts[v.id] !== null && <span className="ct">{counts[v.id]}</span>}
             </button>
@@ -213,14 +195,21 @@ function WorkspaceInner() {
         </nav>
         <div className="side-foot" data-tour="data-links">
           <Link href="/app/data" className="side-link" title="Data explorer">
-            <Database size={16} aria-hidden /> <span className="lbl">Data explorer</span>
+            <Database size={16} strokeWidth={1.5} aria-hidden /> <span className="lbl">Data explorer</span>
           </Link>
           <Link href="/" className="side-link" title="Back to site">
-            <ArrowLeft size={16} aria-hidden /> <span className="lbl">Back to site</span>
+            <ArrowLeft size={16} strokeWidth={1.5} aria-hidden /> <span className="lbl">Back to site</span>
           </Link>
           <hr />
+          <div className="side-theme">
+            <div className="side-label">Theme</div>
+            <ThemeSwitch />
+          </div>
+          <div className="side-menu">
+            <Menu up framed label="Display settings" />
+          </div>
           <div className="local-row">
-            <Laptop size={13} aria-hidden /> This browser — saved locally
+            <Laptop size={13} strokeWidth={1.5} aria-hidden /> Saved in this browser only
           </div>
         </div>
       </aside>
@@ -236,7 +225,7 @@ function WorkspaceInner() {
           </nav>
           <div className="right">
             <button type="button" className="tour-launch" onClick={() => onTourIndex(0)} disabled={phase !== "ready"}>
-              <Compass size={14} aria-hidden /> <span className="lbl">Take the tour</span>
+              <span className="lbl">Take the tour</span> <span aria-hidden>↗</span>
             </button>
             <DataBadge label={data ? `TrueGrit sheet · ${date(data.generatedAt)}` : "TrueGrit sheet"} />
             <span className="avatar-round" title={profile?.name} aria-hidden>
@@ -247,26 +236,30 @@ function WorkspaceInner() {
 
         <main id="main" className="content">
           {phase === "loading" && (
-            <div className="phase" role="status">
-              <div className="phase-box">
-                <span className="spinner" />
-                <h2>Ranking firms…</h2>
-                <p>
-                  Reading the TrueGrit research sheet. The first load after a quiet spell can take up to 15 seconds while
-                  n8n reads all six tabs.
-                </p>
+            <div className="loading-shell" role="status" aria-label="Loading the research data">
+              <div className="sk-head">
+                <span className="skeleton-line" style={{ width: 160 }} />
+                <span className="skeleton-line" style={{ width: "70%", height: 22 }} />
+                <span className="skeleton-line" style={{ width: "90%" }} />
               </div>
+              <div className="sk-metrics skeleton" />
+              <p className="status-text">
+                <span className="spinner small" aria-hidden /> Reading the TrueGrit research sheet. The first load after a quiet
+                spell can take up to 15 seconds while n8n reads all six tabs.
+              </p>
+              <div className="sk-table skeleton" />
             </div>
           )}
           {phase === "error" && (
             <div className="phase">
               <div className="phase-box">
+                <h1>The research data did not load.</h1>
                 <div className="alert" role="alert">
-                  <CircleAlert size={16} />
-                  <span>Could not load the research data. {error}</span>
+                  <CircleAlert size={16} strokeWidth={1.5} />
+                  <span>{error}</span>
                 </div>
-                <button type="button" className="button button-small" onClick={() => load(true)}>
-                  <RefreshCw size={14} /> Try again
+                <button type="button" className="button button-small button-outline" onClick={() => load(true)}>
+                  Try again <span aria-hidden>↻</span>
                 </button>
               </div>
             </div>
@@ -274,13 +267,11 @@ function WorkspaceInner() {
           {phase === "setup" && (
             <div className="phase">
               <div className="phase-box">
-                <span className="icon-tile">
-                  <UserRound size={20} />
-                </span>
-                <h2>Set up your view</h2>
+                <Label>First visit</Label>
+                <h1>Set up your view.</h1>
                 <p>Five quick questions: your name for signing reviews, and the states and practice areas you care about.</p>
-                <button type="button" className="button button-small" onClick={() => setWizard("first")}>
-                  Start <ArrowRight size={14} />
+                <button type="button" className="button" onClick={() => setWizard("first")}>
+                  Start setup <span aria-hidden>↗</span>
                 </button>
               </div>
             </div>
@@ -303,19 +294,18 @@ function WorkspaceInner() {
                 <>
                   <ViewHead
                     path="Saved"
-                    title="Your saved"
-                    accent="shortlist"
+                    title="Your saved shortlist"
                     desc="Firms you bookmarked in this browser. Saving a firm is private to you and does not record a decision."
                   />
                   {savedFirms.length ? (
                     <FirmTable firms={savedFirms} title="Saved firms" profile={profile} saved={saved} pinned={[]} onToggleSave={toggleSave} />
                   ) : (
                     <div className="table-panel empty">
-                      <Bookmark size={22} />
+                      <span className="glyph-mark" aria-hidden>◦</span>
                       <b>Nothing saved yet</b>
                       <span>Use the bookmark at the start of any row in Overview to build a shortlist.</span>
-                      <button type="button" className="button button-small button-outline" onClick={() => goView("overview")}>
-                        Go to Overview
+                      <button type="button" className="text-link" onClick={() => goView("overview")}>
+                        Go to Overview <span aria-hidden>→</span>
                       </button>
                     </div>
                   )}
@@ -399,10 +389,8 @@ function Overview({
     <>
       <div className="view-head">
         <div>
-          <PathEyebrow parts={["Workspace", "TrueGrit sheet"]} />
-          <h1>
-            Insurance-defense firms, <em>ranked by fit</em>
-          </h1>
+          <PathLabel parts={["Workspace", "TrueGrit sheet"]} />
+          <h1>Insurance-defense firms, ranked by fit</h1>
           <p className="desc">
             {firstName(profile.name)}&apos;s view{profile.role ? ` for ${profile.role}` : ""}: every firm the research
             workflow has screened in Florida and Georgia, with the evidence behind each score.
@@ -412,29 +400,29 @@ function Overview({
           </p>
         </div>
         <div className="head-actions">
-          <button type="button" className="button button-small button-outline" onClick={onNewSearch}>
-            New search
+          <button type="button" className="text-link" onClick={onNewSearch}>
+            New search <span aria-hidden>↗</span>
           </button>
-          <button type="button" className="button button-small" onClick={onLookup} data-tour="lookup">
-            <Plus size={14} /> Find a firm
+          <button type="button" className="button" onClick={onLookup} data-tour="lookup">
+            Find a firm <span aria-hidden>↗</span>
           </button>
         </div>
       </div>
 
       {sampleCount > 0 && live.length !== data.firms.length && (
         <div className="banner">
-          <span className="dot indigo" aria-hidden />
+          <span className="dot info" aria-hidden />
           {plural(sampleCount, "sample firm")} from early test runs {sampleCount === 1 ? "is" : "are"} left out of these
           numbers. Untick “Hide sample data” in the table to see {sampleCount === 1 ? "it" : "them"}.
         </div>
       )}
 
-      <div className="metrics" data-tour="metrics">
+      <div className="metrics panel" data-tour="metrics">
         <div className="metric">
           <div className="label">Firms researched</div>
           <div className="value">{live.length}</div>
           <div className="caption">
-            <span className="dot green" aria-hidden />
+            <span className="dot ok" aria-hidden />
             {fl} in Florida · {ga} in Georgia, across {data.runs.filter((r) => r.dataMode === "LIVE").length} live runs
           </div>
         </div>
@@ -442,7 +430,7 @@ function Overview({
           <div className="label">High or moderate fit</div>
           <div className="value">{strong.length}</div>
           <div className="caption">
-            <span className="dot green" aria-hidden />
+            <span className="dot ok" aria-hidden />
             Score ≥ {t.moderate ?? 45} with ≥ {t.min_coverage ?? 40}% of the model backed by evidence. Weights are
             provisional.
           </div>
@@ -451,7 +439,7 @@ function Overview({
           <div className="label">Awaiting review</div>
           <div className="value">{awaiting}</div>
           <div className="caption">
-            <span className="dot green" aria-hidden />
+            <span className="dot ok" aria-hidden />
             High or moderate fits queued for a person, with no decision saved yet.
           </div>
         </div>
@@ -462,7 +450,7 @@ function Overview({
             <small>of {live.length}</small>
           </div>
           <div className="caption">
-            <span className="dot green" aria-hidden />
+            <span className="dot ok" aria-hidden />
             At least one verified claim with a link to its source page or record.
           </div>
         </div>
@@ -470,10 +458,8 @@ function Overview({
 
       <div className="section-title">
         <div>
-          <div className="eyebrow">Ranked firms</div>
-          <h2>
-            Every screened firm, <em>best fit first</em>
-          </h2>
+          <Label>Ranked firms</Label>
+          <h2>Every screened firm, best fit first</h2>
         </div>
         {lastRun && (
           <span className="muted-note">
@@ -492,13 +478,10 @@ function Overview({
         tour
       />
 
-      <div className="notes">
-        <div className="card note">
-          <span className="icon-tile" aria-hidden>
-            <ShieldCheck size={17} />
-          </span>
+      <ul className="notes">
+        <li className="note">
+          <span className="key">Human review</span>
           <div>
-            <div className="eyebrow">Human review</div>
             <p>
               AI researches. People decide.{" "}
               {top ? (
@@ -509,52 +492,39 @@ function Overview({
                 "No high or moderate fits yet."
               )}
             </p>
+            {top && (
+              <Link className="text-link" href={`/firms/${encodeURIComponent(top.id)}`}>
+                Open the firm file <span aria-hidden>→</span>
+              </Link>
+            )}
           </div>
-          {top ? (
-            <Link className="square-arrow" href={`/firms/${encodeURIComponent(top.id)}`} aria-label={`Open ${top.name}`}>
-              <ArrowRight size={15} />
-            </Link>
-          ) : (
-            <span />
-          )}
-        </div>
-        <div className="card note">
-          <span className="icon-tile" aria-hidden>
-            <Database size={17} />
-          </span>
+        </li>
+        <li className="note">
+          <span className="key">Source data</span>
           <div>
-            <div className="eyebrow">Source data</div>
             <p>
-              {data.evidenceCount.toLocaleString()} evidence records and {plural(data.runs.length, "workflow run")}.
-              Check any claim against its source.
+              {data.evidenceCount.toLocaleString()} evidence records and {plural(data.runs.length, "workflow run")}. Check any
+              claim against its source.
             </p>
+            <Link className="text-link" href="/app/data">
+              Open the data explorer <span aria-hidden>→</span>
+            </Link>
           </div>
-          <Link className="square-arrow" href="/app/data" aria-label="Open the data explorer">
-            <ArrowRight size={15} />
-          </Link>
-        </div>
-      </div>
+        </li>
+      </ul>
 
-      <div className="split">
+      <div className="duo">
         <div className="panel">
           <div className="ai-label">
-            <span className="dot indigo" aria-hidden /> Written by the workflow&apos;s AI for run {data.summary?.runId ?? "—"} ·{" "}
+            <span className="dot ai" aria-hidden /> Written by the workflow&apos;s AI for run {data.summary?.runId ?? "—"} ·{" "}
             {date(data.summary?.generatedAt)}
           </div>
-          <h3>
-            Latest run <em>summary</em>
-          </h3>
-          {data.summary ? (
-            <div className="summary-text">{data.summary.text}</div>
-          ) : (
-            <p className="muted-note">No run summary yet.</p>
-          )}
+          <h3>Latest run summary</h3>
+          {data.summary ? <div className="summary-text">{data.summary.text}</div> : <p className="muted-note">No run summary yet.</p>}
         </div>
         <div className="panel">
-          <div className="eyebrow">Across all live firms</div>
-          <h3>
-            Most common <em>gaps</em>
-          </h3>
+          <Label>Across all live firms</Label>
+          <h3>Most common gaps</h3>
           {gaps.length ? (
             gaps.map(([g, n]) => (
               <div key={g} className="gap-row">
@@ -565,7 +535,7 @@ function Overview({
           ) : (
             <p className="muted-note">No gaps recorded.</p>
           )}
-          <p className="muted-note" style={{ marginTop: 10 }}>
+          <p className="muted-note" style={{ marginTop: 12 }}>
             Missing information is not evidence of poor fit.
           </p>
         </div>

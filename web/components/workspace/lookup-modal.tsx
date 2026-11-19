@@ -2,10 +2,11 @@
 
 // "Find a firm": looks a firm up among the researched records. Adapted from an
 // on-demand analyze step, because new research runs in n8n, not in the browser.
-import { CircleAlert, Search, X } from "lucide-react";
+import { CircleAlert } from "lucide-react";
 import { useRef, useState, type FormEvent } from "react";
 import { lookupFirm } from "@/lib/api";
 import type { FirmSummary } from "@/lib/types";
+import { PathLabel } from "../ui";
 import { useFocusTrap } from "../use-focus-trap";
 
 export function LookupModal({
@@ -42,13 +43,14 @@ export function LookupModal({
   return (
     <div className="modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div ref={ref} className="modal" role="dialog" aria-modal="true" aria-labelledby="lookup-title">
-        <button type="button" className="round-x" onClick={onClose} aria-label="Close">
-          <X size={15} />
-        </button>
-        <div className="eyebrow">Workspace / Researched firms</div>
-        <h2 id="lookup-title">
-          Find a <em>firm</em>
-        </h2>
+        <div className="modal-head">
+          <PathLabel parts={["Workspace", "Researched firms"]} />
+          <button type="button" className="close-x" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <div className="modal-body">
+        <h2 id="lookup-title">Find a firm</h2>
         <p>Look up any firm the research workflow has screened, by name or web address.</p>
         <form onSubmit={submit}>
           <div className="field">
@@ -65,7 +67,7 @@ export function LookupModal({
           </div>
           {miss && (
             <div className="alert" role="alert">
-              <CircleAlert size={15} />
+              <CircleAlert size={15} strokeWidth={1.5} />
               <span>
                 No researched firm matches “{miss}”. Firms appear here once the n8n workflow finds them. To include a firm,
                 add its city or a matching search phrase to the workflow&apos;s Run Configuration.
@@ -75,15 +77,16 @@ export function LookupModal({
           <button type="submit" className="button" disabled={busy || !q.trim()}>
             {busy ? (
               <>
-                <span className="spinner small" /> Searching…
+                <span className="spinner small" aria-hidden /> Searching…
               </>
             ) : (
               <>
-                <Search size={15} /> Find firm
+                Find firm <span aria-hidden>→</span>
               </>
             )}
           </button>
         </form>
+        </div>
       </div>
     </div>
   );

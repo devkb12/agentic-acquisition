@@ -2,10 +2,10 @@
 
 // The ranked firm table: search, sort, fit and stage chips, save toggles and
 // a status menu that opens the firm's review panel.
-import { ArrowUpRight, Bookmark, BookmarkCheck, SearchX, Search, SlidersHorizontal } from "lucide-react";
+import { Bookmark, BookmarkCheck, Search, SlidersHorizontal } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { DECISIONS, FITS, STAGES, fitRank } from "@/lib/fit";
 import { NO_DATA, compact, money, place, range } from "@/lib/format";
 import { focusMatches, inSizeBand } from "@/lib/profile";
@@ -53,8 +53,6 @@ export interface TableFilters {
   stage: Stage | "";
 }
 
-const RANGE_INPUT = { width: 74, height: 30, padding: "0 8px", fontSize: 12 } as const;
-
 export function FirmTable({
   firms,
   title,
@@ -92,6 +90,12 @@ export function FirmTable({
   const [countLabel, setCountLabel] = useState("");
   const [checkOnly, setCheckOnly] = useState(false);
   const [hidePlaceholder, setHidePlaceholder] = useState(false);
+  // Rows rise in on the first load only; sorting and filtering never replay it.
+  const [arriving, setArriving] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setArriving(false), 900);
+    return () => clearTimeout(t);
+  }, []);
   const stateOptions = useMemo(() => [...new Set(firms.map((f) => f.state).filter(Boolean))].sort(), [firms]);
   const states = useMemo(() => profile?.states ?? [], [profile]);
 
@@ -184,7 +188,7 @@ export function FirmTable({
           </small>
         </div>
         <label className="search">
-          <Search size={14} aria-hidden />
+          <Search size={14} strokeWidth={1.5} aria-hidden />
           <span className="sr-only">Search firms</span>
           <input
             className="input"
@@ -194,7 +198,7 @@ export function FirmTable({
             placeholder="Search firm, city or practice"
           />
         </label>
-        <label>
+        <label className="select-wrap">
           <span className="sr-only">Sort</span>
           <select className="select" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
             {SORTS.filter((s) => s.value !== "focus" || profile?.practices.length).map((s) => (
@@ -212,15 +216,15 @@ export function FirmTable({
           aria-controls="size-revenue-filters"
           onClick={() => setMore(!more)}
         >
-          <SlidersHorizontal size={13} aria-hidden /> Size &amp; revenue{advancedActive ? " · on" : ""}
+          <SlidersHorizontal size={13} strokeWidth={1.5} aria-hidden /> Size &amp; revenue{advancedActive ? " · on" : ""}
         </button>
       </div>
 
       {more && (
-        <div className="filter-row" id="size-revenue-filters" role="group" aria-label="Size and revenue filters" style={{ flexWrap: "wrap" }}>
-          <label className="toggle" style={{ marginLeft: 0 }}>
+        <div className="filter-row wrap-row" id="size-revenue-filters" role="group" aria-label="Size and revenue filters">
+          <label className="toggle first">
             State
-            <select className="select" style={{ width: "auto", height: 30, padding: "0 8px", fontSize: 12 }} value={state} onChange={(e) => setState(e.target.value)}>
+            <select className="select" value={state} onChange={(e) => setState(e.target.value)}>
               <option value="">Any</option>
               {stateOptions.map((s) => (
                 <option key={s} value={s}>
@@ -230,23 +234,23 @@ export function FirmTable({
             </select>
           </label>
           <span className="divider" aria-hidden />
-          <label className="toggle" style={{ marginLeft: 0 }}>
+          <label className="toggle first">
             Attorneys
-            <input className="input" style={RANGE_INPUT} type="number" min={0} inputMode="numeric" placeholder="min" value={minAtt} onChange={(e) => setMinAtt(e.target.value)} aria-label="Minimum attorneys" />
+            <input className="input range" type="number" min={0} inputMode="numeric" placeholder="min" value={minAtt} onChange={(e) => setMinAtt(e.target.value)} aria-label="Minimum attorneys" />
             –
-            <input className="input" style={RANGE_INPUT} type="number" min={0} inputMode="numeric" placeholder="max" value={maxAtt} onChange={(e) => setMaxAtt(e.target.value)} aria-label="Maximum attorneys" />
+            <input className="input range" type="number" min={0} inputMode="numeric" placeholder="max" value={maxAtt} onChange={(e) => setMaxAtt(e.target.value)} aria-label="Maximum attorneys" />
           </label>
           <span className="divider" aria-hidden />
-          <label className="toggle" style={{ marginLeft: 0 }}>
+          <label className="toggle first">
             Est. revenue ($M)
-            <input className="input" style={RANGE_INPUT} type="number" min={0} step={0.5} inputMode="decimal" placeholder="min" value={minRev} onChange={(e) => setMinRev(e.target.value)} aria-label="Minimum estimated revenue in millions" />
+            <input className="input range" type="number" min={0} step={0.5} inputMode="decimal" placeholder="min" value={minRev} onChange={(e) => setMinRev(e.target.value)} aria-label="Minimum estimated revenue in millions" />
             –
-            <input className="input" style={RANGE_INPUT} type="number" min={0} step={0.5} inputMode="decimal" placeholder="max" value={maxRev} onChange={(e) => setMaxRev(e.target.value)} aria-label="Maximum estimated revenue in millions" />
+            <input className="input range" type="number" min={0} step={0.5} inputMode="decimal" placeholder="max" value={maxRev} onChange={(e) => setMaxRev(e.target.value)} aria-label="Maximum estimated revenue in millions" />
           </label>
           <span className="divider" aria-hidden />
-          <label className="toggle" style={{ marginLeft: 0 }}>
+          <label className="toggle first">
             Count status
-            <select className="select" style={{ width: "auto", height: 30, padding: "0 8px", fontSize: 12 }} value={countLabel} onChange={(e) => setCountLabel(e.target.value)}>
+            <select className="select" value={countLabel} onChange={(e) => setCountLabel(e.target.value)}>
               <option value="">Any</option>
               {COUNT_LABELS.map((l) => (
                 <option key={l} value={l}>
@@ -295,8 +299,8 @@ export function FirmTable({
       </div>
 
       {rows.length ? (
-        <div className="table-scroll">
-          <table className="data">
+        <div className="table-scroll tall">
+          <table className={`data${arriving ? " arriving" : ""}`}>
             <thead>
               <tr>
                 <th>
@@ -320,7 +324,7 @@ export function FirmTable({
                   <tr
                     key={f.id}
                     className={pinned.includes(f.id) ? "pinned" : undefined}
-                    style={{ animationDelay: `${Math.min(i, 12) * 25}ms` }}
+                    style={arriving ? { animationDelay: `${Math.min(i, 12) * 30}ms` } : undefined}
                     data-tour={tour && i === 0 ? "first-row" : undefined}
                   >
                     <td style={{ width: 44 }}>
@@ -331,7 +335,7 @@ export function FirmTable({
                         aria-label={isSaved ? `Remove ${f.name} from saved` : `Save ${f.name}`}
                         onClick={() => onToggleSave(f)}
                       >
-                        {isSaved ? <BookmarkCheck size={14} /> : <Bookmark size={14} />}
+                        {isSaved ? <BookmarkCheck size={15} strokeWidth={1.5} /> : <Bookmark size={15} strokeWidth={1.5} />}
                       </button>
                     </td>
                     <td>
@@ -343,7 +347,7 @@ export function FirmTable({
                           </Link>
                           <div className="sub">
                             <Link href={`/firms/${encodeURIComponent(f.id)}`} className="view" tabIndex={-1}>
-                              View file <ArrowUpRight size={11} />
+                              Open file →
                             </Link>
                             {pinned.includes(f.id) && <span>Looked up this session</span>}
                             {f.sample && <span className="tag sample">Sample</span>}
@@ -357,11 +361,12 @@ export function FirmTable({
                         <FitPill fit={f.fit} />
                       </div>
                       <ScoreBar value={f.score} muted={thin} />
-                      <div className="cov" style={{ marginTop: 4 }}>
+                      <div className="cov">
                         {f.coverage !== null ? `${f.coverage}% of model had evidence` : NO_DATA}
                       </div>
                     </td>
                     <td className="fig-cell">
+                      <div className="count">
                       {f.attorneys !== null ? <b>{compact(f.attorneys)}</b> : <span className="muted-note">{NO_DATA}</span>}
                       {f.attorneysLabel ? (
                         <span
@@ -374,8 +379,9 @@ export function FirmTable({
                         f.attorneys !== null && <StatusTag status={f.attorneysStatus} />
                       )}
                       {f.dataCheck && (
-                        <span className="dot yellow" title="Flagged for a data check" aria-label="Flagged for a data check" style={{ marginLeft: 6 }} />
+                        <span className="dot warn" title="Flagged for a data check" aria-label="Flagged for a data check" />
                       )}
+                      </div>
                       {revenueCell(f) && (
                         <div className="sub">
                           {revenueCell(f)} {f.revenueBasis === "Reported" ? "reported" : "est."}
@@ -409,7 +415,7 @@ export function FirmTable({
                       )}
                     </td>
                     <td>
-                      <label>
+                      <label className="select-wrap">
                         <span className="sr-only">Review stage for {f.name}</span>
                         <select
                           className={`stage-select ${stageClass(f.stage)}`}
@@ -426,7 +432,7 @@ export function FirmTable({
                           </optgroup>
                         </select>
                       </label>
-                      {f.queuedFit && <div className="muted-note" style={{ marginTop: 4 }}>Fit changed since queued</div>}
+                      {f.queuedFit && <div className="muted-note" style={{ marginTop: 4 }}>◦ Fit changed since queued</div>}
                     </td>
                   </tr>
                 );
@@ -436,12 +442,12 @@ export function FirmTable({
         </div>
       ) : (
         <div className="empty">
-          <SearchX size={22} />
+          <span className="glyph-mark" aria-hidden>◦</span>
           <b>No firms match</b>
           <span>{emptyHint ?? "Try a different search or clear the filters."}</span>
           {(q || fit || stage || advancedActive) && (
-            <button type="button" className="button button-small button-outline" onClick={clear}>
-              Clear filters
+            <button type="button" className="text-link" onClick={clear}>
+              Clear filters <span aria-hidden>↻</span>
             </button>
           )}
         </div>
@@ -449,7 +455,7 @@ export function FirmTable({
 
       <div className="table-foot">
         <span className="left">
-          <span className="dot yellow" aria-hidden /> Research from public websites, Google Maps, Sunbiz and USAspending.
+          <span className="dot warn" aria-hidden /> Research from public websites, Google Maps, Sunbiz and USAspending.
           Attorney counts and revenue are estimates unless tagged Verified; revenue is modeled (attorneys × revenue per attorney) unless marked reported.
         </span>
         <span>Scores support, not replace, human judgment.</span>

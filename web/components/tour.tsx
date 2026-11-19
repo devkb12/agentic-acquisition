@@ -2,8 +2,8 @@
 
 // Product tour: spotlights elements marked with data-tour="…" and walks
 // through the workspace and a firm page. Hosts move between views and pages.
-import { ArrowLeft, ArrowRight } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { Label } from "./ui";
 import { useFocusTrap } from "./use-focus-trap";
 
 export type TourPage = "workspace" | "detail";
@@ -307,9 +307,12 @@ export function Tour({
         key={index}
         style={pos ? { top: pos.top, left: pos.left } : { visibility: "hidden" }}
       >
-        <div className="eyebrow">
-          {String(index + 1).padStart(2, "0")} / {String(TOUR_STEPS.length).padStart(2, "0")} · {step.eyebrow}
-        </div>
+        <Label>
+          <span className="mono">
+            {String(index + 1).padStart(2, "0")} / {String(TOUR_STEPS.length).padStart(2, "0")}
+          </span>{" "}
+          · {step.eyebrow}
+        </Label>
         <h3 id="tour-title">{step.title}</h3>
         <div className="body">{step.body}</div>
         <div className="tour-progress" aria-hidden>
@@ -321,7 +324,7 @@ export function Tour({
           </button>
           {index > 0 && (
             <button type="button" className="button button-small button-outline" onClick={back}>
-              <ArrowLeft size={14} /> Back
+              Back
             </button>
           )}
           <button type="button" className="button button-small" onClick={next} data-autofocus>
@@ -330,7 +333,7 @@ export function Tour({
             ) : (
               <>
                 <span className="long">Next step</span>
-                <span className="short">Next</span> <ArrowRight size={14} />
+                <span className="short">Next</span> <span aria-hidden>→</span>
               </>
             )}
           </button>

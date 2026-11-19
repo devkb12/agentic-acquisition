@@ -1,14 +1,15 @@
 "use client";
 
 // Data explorer (/app/data): the raw evidence log and the workflow run log.
-import { ArrowLeft, ArrowRight, ArrowUpRight, CircleAlert, RefreshCw, Search } from "lucide-react";
+import { CircleAlert, Search } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { getWorkspace, searchEvidence } from "@/lib/api";
 import { STATUS_LABEL, fieldLabel } from "@/lib/fit";
 import { date } from "@/lib/format";
 import type { EvidencePage, FieldStatus, RunRow, WorkspaceData } from "@/lib/types";
-import { DataBadge, PathEyebrow, StatusTag } from "../ui";
+import { Menu } from "../site-chrome";
+import { DataBadge, PathLabel, StarMark, StatusTag } from "../ui";
 
 type Tab = "evidence" | "runs";
 const PAGE_SIZE = 50;
@@ -33,11 +34,10 @@ export function DataExplorer() {
   };
 
   return (
-    <div style={{ background: "var(--app-bg)", minHeight: "100vh" }}>
-      <header className="detail-bar">
-        <Link href="/app" className="brand-tile" aria-label="Back to the workspace">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-mono.svg" alt="" width={20} height={20} />
+    <div>
+      <header className="app-bar">
+        <Link href="/app" className="wordmark-link wordmark small" aria-label="Back to the workspace">
+          <StarMark />
         </Link>
         <nav className="crumbs" aria-label="Breadcrumb">
           <Link href="/app">Lodestar</Link>
@@ -46,20 +46,21 @@ export function DataExplorer() {
           <span className="sep">/</span>
           <b>Data explorer</b>
         </nav>
-        <div style={{ marginLeft: "auto" }}>
+        <div className="right">
           <DataBadge label={data ? `TrueGrit sheet · ${date(data.generatedAt)}` : "TrueGrit sheet"} />
+          <Menu framed label="Display settings" links={[{ href: "/app", label: "Workspace" }, { href: "/", label: "Home" }]} />
         </div>
       </header>
       <main id="main" className="detail">
-        <Link href="/app" className="text-link small muted">
-          <ArrowLeft size={13} /> Back to the workspace
-        </Link>
-        <div className="view-head" style={{ marginTop: 18 }}>
+        <div className="back-row">
+          <Link href="/app" className="text-link muted">
+            Back to the workspace
+          </Link>
+        </div>
+        <div className="view-head" style={{ marginTop: 12 }}>
           <div>
-            <PathEyebrow parts={["Workspace", "Source data"]} />
-            <h1>
-              The raw records <em>behind every score</em>
-            </h1>
+            <PathLabel parts={["Workspace", "Source data"]} />
+            <h1>The raw records behind every score</h1>
             <p className="desc">
               Every evidence row the workflow logged in the Source_Log tab, and every run in Run_Log. Use it to check a claim
               or to see why a run had errors.
@@ -78,15 +79,15 @@ export function DataExplorer() {
 
         {error && !data ? (
           <div className="alert" role="alert">
-            <CircleAlert size={15} /> <span>Could not load the research data. {error}</span>
+            <CircleAlert size={15} strokeWidth={1.5} /> <span>Could not load the research data. {error}</span>
           </div>
         ) : tab === "evidence" ? (
           <EvidenceTable />
         ) : data ? (
           <RunsTable runs={data.runs} />
         ) : (
-          <div className="empty" role="status">
-            <span className="spinner" /> Reading the run log…
+          <div className="table-panel empty" role="status">
+            <span className="spinner" aria-hidden /> Reading the run log…
           </div>
         )}
       </main>
@@ -142,7 +143,7 @@ function EvidenceTable() {
           <small aria-live="polite">{result ? `${result.total.toLocaleString()} matching` : "Loading…"}</small>
         </div>
         <label className="search">
-          <Search size={14} aria-hidden />
+          <Search size={14} strokeWidth={1.5} aria-hidden />
           <span className="sr-only">Search evidence</span>
           <input
             className="input"
@@ -152,7 +153,7 @@ function EvidenceTable() {
             placeholder="Search firm, field, value or source"
           />
         </label>
-        <label>
+        <label className="select-wrap">
           <span className="sr-only">Field</span>
           <select className="select" value={field} onChange={(e) => reset(() => setField(e.target.value))}>
             <option value="">All fields</option>
@@ -181,10 +182,10 @@ function EvidenceTable() {
       {error ? (
         <div className="empty">
           <div className="alert" role="alert">
-            <CircleAlert size={15} /> <span>{error}</span>
+            <CircleAlert size={15} strokeWidth={1.5} /> <span>{error}</span>
           </div>
-          <button type="button" className="button button-small" onClick={() => setAttempt((a) => a + 1)}>
-            <RefreshCw size={14} /> Try again
+          <button type="button" className="button button-small button-outline" onClick={() => setAttempt((a) => a + 1)}>
+            Try again <span aria-hidden>↻</span>
           </button>
         </div>
       ) : result && result.rows.length ? (
@@ -220,7 +221,7 @@ function EvidenceTable() {
                     {e.source}
                     {e.url && (
                       <a href={e.url} target="_blank" rel="noopener noreferrer" className="text-link small" style={{ marginLeft: 6 }} aria-label="Open source">
-                        <ArrowUpRight size={12} />
+                        ↗
                       </a>
                     )}
                   </td>
@@ -234,27 +235,28 @@ function EvidenceTable() {
         </div>
       ) : busy ? (
         <div className="empty" role="status">
-          <span className="spinner" /> Searching the evidence log…
+          <span className="spinner" aria-hidden /> Searching the evidence log…
         </div>
       ) : (
         <div className="empty">
+          <span className="glyph-mark" aria-hidden>◦</span>
           <b>No evidence matches</b>
           <span>Try another search or status.</span>
         </div>
       )}
       <div className="table-foot">
         <span className="left">
-          <span className="dot yellow" aria-hidden /> Source_Log tab of the TrueGrit sheet. Website text rows are left out to
+          <span className="dot warn" aria-hidden /> Source_Log tab of the TrueGrit sheet. Website text rows are left out to
           keep this readable.
         </span>
         {result && result.total > PAGE_SIZE && (
           <span className="pager">
             <button type="button" className="toolbar-button" disabled={page <= 1} onClick={() => setPage((p) => p - 1)} aria-label="Previous page">
-              <ArrowLeft size={13} />
+              <span aria-hidden>‹</span>
             </button>
             Page {page} of {pages}
             <button type="button" className="toolbar-button" disabled={page >= pages} onClick={() => setPage((p) => p + 1)} aria-label="Next page">
-              <ArrowRight size={13} />
+              <span aria-hidden>›</span>
             </button>
           </span>
         )}
@@ -277,7 +279,14 @@ const RUN_COLUMNS: { key: keyof RunRow; label: string; bad?: boolean }[] = [
 ];
 
 function RunsTable({ runs }: { runs: RunRow[] }) {
-  if (!runs.length) return <div className="table-panel empty">No runs logged yet.</div>;
+  if (!runs.length)
+    return (
+      <div className="table-panel empty">
+        <span className="glyph-mark" aria-hidden>◦</span>
+        <b>No runs logged yet</b>
+        <span>Runs appear here once the n8n workflow writes to the Run_Log tab.</span>
+      </div>
+    );
   return (
     <div className="table-panel">
       <div className="table-toolbar">
@@ -330,7 +339,7 @@ function RunsTable({ runs }: { runs: RunRow[] }) {
       </div>
       <div className="table-foot">
         <span className="left">
-          <span className="dot yellow" aria-hidden /> Run_Log tab. “Completed with errors” usually means some AI
+          <span className="dot warn" aria-hidden /> Run_Log tab. “Completed with errors” usually means some AI
           classifications or website reads failed and those firms need a rerun.
         </span>
       </div>

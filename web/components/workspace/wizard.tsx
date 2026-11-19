@@ -2,11 +2,11 @@
 
 // Onboarding wizard: one question per card. Opens on a first visit (can't be
 // dismissed), as "New search" on return visits, and pre-filled from Edit profile.
-import { ArrowLeft, ArrowRight, Check, CornerDownLeft, X } from "lucide-react";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { emptyProfile, type Profile } from "@/lib/api";
 import { CATEGORIES, ROLES, SIZE_BANDS, STATE_OPTIONS, categoriesIn, firstName } from "@/lib/profile";
 import { plural } from "@/lib/format";
+import { Label } from "../ui";
 import { useFocusTrap } from "../use-focus-trap";
 
 export type WizardMode = "first" | "new" | "edit";
@@ -151,12 +151,17 @@ export function Wizard({
       >
         {finishing ? (
           <div className="finish" role="status" aria-live="polite">
-            <div className={`orb${done ? " done" : ""}`}>{done ? <Check size={36} /> : <span className="spinner" />}</div>
+            <div className="finish-mark" aria-hidden>
+              {done ? "✓" : <span className="spinner" />}
+            </div>
             <h2 id="wizard-q">{done ? "Your workspace is ready" : `Setting up your view, ${name}`}</h2>
             <ul className="checklist">
               {checklist.map((c, i) => (
                 <li key={c} className={lit > i ? "lit" : ""}>
-                  <Check size={15} /> {c}
+                  <span className="glyph" aria-hidden>
+                    {lit > i ? "✓" : "◦"}
+                  </span>
+                  <span>{c}</span>
                 </li>
               ))}
             </ul>
@@ -168,8 +173,8 @@ export function Wizard({
                 Question {step + 1} of {steps.length}
               </span>
               {dismissable && (
-                <button type="button" className="round-x" onClick={onClose} aria-label="Close">
-                  <X size={15} />
+                <button type="button" className="close-x" onClick={onClose} aria-label="Close">
+                  ✕
                 </button>
               )}
             </div>
@@ -178,13 +183,13 @@ export function Wizard({
             </div>
 
             <div className={`wizard-step ${dir}`} key={step}>
-              <div className="eyebrow">{s.eyebrow}</div>
+              <Label>{s.eyebrow}</Label>
               <h2 id="wizard-q">{s.question}</h2>
               <p className="hint">{s.hint}</p>
 
               {step === 0 && (
                 <input
-                  className="wizard-input"
+                  className="input"
                   value={p.name}
                   onChange={(e) => setP({ ...p, name: e.target.value })}
                   placeholder="Your full name"
@@ -227,7 +232,7 @@ export function Wizard({
               )}
               {step === 3 && (
                 <textarea
-                  className="wizard-input"
+                  className="input"
                   value={p.focus}
                   onChange={(e) => setP({ ...p, focus: e.target.value })}
                   placeholder="Insurance-defense firms that represent carriers…"
@@ -271,11 +276,11 @@ export function Wizard({
             <div className="wizard-foot">
               {step > 0 && (
                 <button type="button" className="button button-small button-outline" onClick={() => go(step - 1)}>
-                  <ArrowLeft size={14} /> Back
+                  Back
                 </button>
               )}
-              <span className="enter-hint">
-                Press Enter <CornerDownLeft size={11} style={{ display: "inline", verticalAlign: -1 }} />
+              <span className="enter-hint" aria-hidden>
+                ↵ Enter
               </span>
               <button
                 type="button"
@@ -283,12 +288,12 @@ export function Wizard({
                 disabled={!s.valid}
                 onClick={() => (lastStep ? finish() : go(step + 1))}
               >
-                {lastStep ? "Show my firms" : "Next"} <ArrowRight size={14} />
+                {lastStep ? "Show my firms" : "Next"} <span aria-hidden>→</span>
               </button>
             </div>
             {mode === "new" && (
-              <button type="button" className="back-link" onClick={onClose}>
-                <ArrowLeft size={13} /> Back to your last results
+              <button type="button" className="text-link muted" onClick={onClose} style={{ marginTop: 8 }}>
+                Back to your last results
               </button>
             )}
           </>
