@@ -54,6 +54,20 @@ export interface FirmSummary {
   attorneysStatus: FieldStatus;
   revenue: string | null;
   revenueStatus: FieldStatus;
+  /** Enrichment workflow label: Verified | Partially verified | Estimated | Missing (null = not enriched yet). */
+  attorneysLabel: string | null;
+  /** 0–100 confidence in the attorney count, from the enrichment workflow. */
+  attorneysConfidence: number | null;
+  /** True when no attorney was named anywhere and a small-firm placeholder range was used. */
+  attorneysPlaceholder: boolean;
+  /** Modeled (or reported) revenue range in dollars. */
+  revenueLow: number | null;
+  revenueBase: number | null;
+  revenueHigh: number | null;
+  /** "Reported" or "Modeled estimate". */
+  revenueBasis: string | null;
+  /** The enrichment workflow flagged this firm's count for a person to check. */
+  dataCheck: boolean;
   practiceAreas: string[];
   entityStatus: string | null;
   entityVerified: boolean;
@@ -100,6 +114,22 @@ export interface KeywordHit {
   weight: number;
 }
 
+export interface Enrichment {
+  range: string | null;
+  method: string | null;
+  sourceTypes: string | null;
+  sources: string[];
+  notes: string[];
+  namesFound: string[];
+  namesMatched: string[];
+  checkedAt: string | null;
+  formula: string | null;
+  assumptions: string | null;
+  benchmark: string | null;
+  sponsorComparison: string | null;
+  revenueConfidence: string | null;
+}
+
 export interface FirmDetail extends FirmSummary {
   address: string | null;
   phone: string | null;
@@ -136,6 +166,8 @@ export interface FirmDetail extends FirmSummary {
   runId: string | null;
   analyzedAt: string | null;
   mapsUrl: string | null;
+  /** Attorney-count and revenue evidence from the enrichment workflow (null = not enriched yet). */
+  enrichment: Enrichment | null;
 }
 
 export interface RunRow {

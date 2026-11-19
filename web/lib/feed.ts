@@ -5,6 +5,7 @@ import { asDecision, asFit, fieldLabel, fitRank, isStage, signalKind } from "./f
 import type {
   Confidence,
   Config,
+  Enrichment,
   Evidence,
   EvidencePage,
   Factor,
@@ -215,6 +216,36 @@ function statusOf(j: Joined, field: string): FieldStatus | null {
   return statuses.includes("verified") ? "verified" : evidenceStatus(statuses[0]);
 }
 
+function labelStatus(label: string): FieldStatus {
+  if (label === "Verified") return "verified";
+  if (label === "Missing") return "missing";
+  return "estimated";
+}
+
+function enrichmentOf(L: Row): Enrichment | null {
+  if (!str(L.attorney_count_status)) return null;
+  const split = (v: unknown, sep: RegExp) =>
+    String(v ?? "")
+      .split(sep)
+      .map((x) => x.trim())
+      .filter(Boolean);
+  return {
+    range: str(L.attorney_count_range),
+    method: str(L.attorney_count_method),
+    sourceTypes: str(L.attorney_count_source_types),
+    sources: split(L.attorney_count_sources, /\s;\s/).filter((u) => /^https?:\/\//i.test(u)),
+    notes: split(L.attorney_count_mismatch_notes, /\s\|\s/),
+    namesFound: list(L.attorney_names_found),
+    namesMatched: list(L.attorney_names_bar_matched),
+    checkedAt: str(L.attorney_count_checked_at),
+    formula: str(L.revenue_formula),
+    assumptions: str(L.revenue_assumptions),
+    benchmark: str(L.revenue_benchmark_source),
+    sponsorComparison: str(L.revenue_sponsor_comparison),
+    revenueConfidence: str(L.revenue_confidence),
+  };
+}
+
 function stageOf(fit: Fit, leadStatus: string | null, review: ReviewInfo | null): Stage {
   if (review?.decision) return review.decision;
   if (review && (fit === "High Fit" || fit === "Moderate Fit")) return "Needs review";
@@ -241,8 +272,11 @@ function summarize(j: Joined): FirmSummary {
       }
     : null;
   const queuedFit = R ? asFit(str(R.final_fit)) : null;
-  const attorneys = num(L.attorney_count);
-  const revenue = str(L.revenue_estimate) ?? str(L.revenue);
+  // Enrichment workflow columns (attorney_count_*, revenue_*) win over the discovery workflow's rough values.
+  const label = str(L.attorney_count_status);
+  const attorneys = num(L.attorney_count_validated) ?? num(L.attorney_count);
+  const revenue = str(L.revenue_range_display) ?? str(L.revenue_estimate) ?? str(L.revenue);
+  const revenueBasis = str(L.revenue_basis);
 
   const signals = j.sources
     .filter((s) => String(s.field).startsWith("signal:"))
@@ -262,9 +296,25 @@ function summarize(j: Joined): FirmSummary {
     insuranceScore: num(L.insurance_score ?? A.insurance_score),
     insuranceBand: str(L.insurance_band) ?? str(A.insurance_band),
     attorneys,
-    attorneysStatus: attorneys !== null ? (statusOf(j, "attorney_count") ?? "estimated") : "missing",
+    attorneysStatus: label
+      ? labelStatus(label)
+      : attorneys !== null
+        ? (statusOf(j, "attorney_count") ?? "estimated")
+        : "missing",
     revenue,
-    revenueStatus: revenue ? (String(L.revenue_status) === "verified" ? "verified" : "estimated") : "missing",
+    revenueStatus: revenue
+      ? revenueBasis === "Reported" || String(L.revenue_status) === "verified"
+        ? "verified"
+        : "estimated"
+      : "missing",
+    attorneysLabel: label,
+    attorneysConfidence: num(L.attorney_count_confidence),
+    attorneysPlaceholder: /^PLACEHOLDER/i.test(String(L.attorney_count_method ?? "")),
+    revenueLow: num(L.revenue_low),
+    revenueBase: num(L.revenue_base),
+    revenueHigh: num(L.revenue_high),
+    revenueBasis,
+    dataCheck: String(L.attorney_review_flag) === "Yes",
     practiceAreas: list(L.practice_areas ?? A.practice_areas),
     entityStatus: str(L.entity_status),
     entityVerified: String(L.entity_status_label) === "Verified",
@@ -432,6 +482,7 @@ function detail(j: Joined, s: FirmSummary, evidence: Evidence[]): FirmDetail {
     runId: str(A.run_id) ?? str(L.last_run_id),
     analyzedAt: str(A.analyzed_at),
     mapsUrl: list(L.source_urls).find((u) => /google\.com\/maps/.test(u)) ?? null,
+    enrichment: enrichmentOf(L),
   };
 }
 
