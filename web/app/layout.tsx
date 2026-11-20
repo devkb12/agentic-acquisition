@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     template: "Lodestar · %s",
   },
   description:
-    "Lodestar researches Florida and Georgia insurance-defense law firms for TrueGrit Capital and VIMANA. AI researches. People decide.",
+    "Lodestar researches Southeast (FL, GA, NC, SC, VA) insurance-defense law firms for TrueGrit Capital and VIMANA. AI researches. People decide.",
   robots: { index: false, follow: false },
 };
 

@@ -98,7 +98,7 @@ export function About() {
             </h1>
             <p className="lead">
               Lodestar is the research dashboard of Agentic Acquisition Intelligence, an ASU MSAIB capstone for TrueGrit Capital
-              and VIMANA. It researches Florida and Georgia insurance-defense law firms and explains how each one fits the
+              and VIMANA. It researches insurance-defense law firms in Florida, Georgia, North Carolina, South Carolina and Virginia and explains how each one fits the
               sponsors&apos; criteria.
             </p>
           </div>

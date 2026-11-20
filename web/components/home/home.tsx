@@ -43,7 +43,7 @@ function Hero() {
           you can check.
         </h1>
         <p className="lead" {...rise(2)}>
-          An AI research agent finds Florida and Georgia insurance-defense firms, reads their websites, checks public records
+          An AI research agent finds insurance-defense firms across Florida, Georgia, the Carolinas and Virginia, reads their websites, checks public records
           and scores each one against TrueGrit&apos;s criteria. Your team reviews every result.
         </p>
         <div className="hero-actions" {...rise(3)}>
@@ -108,7 +108,7 @@ const STEPS = [
   {
     title: "Discover",
     short: "Maps, Sunbiz, USAspending",
-    text: "Search Google Maps across ten Florida and Georgia cities, add Florida's Sunbiz registry and USAspending.gov, then drop duplicates and firms already on file.",
+    text: "Search Google Maps and the Justia directory across 34 cities in five Southeast states, add Florida's Sunbiz registry and USAspending.gov, then drop duplicates and firms already on file.",
   },
   {
     title: "Read and classify",

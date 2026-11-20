@@ -4,7 +4,7 @@
 // dismissed), as "New search" on return visits, and pre-filled from Edit profile.
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { emptyProfile, type Profile } from "@/lib/api";
-import { CATEGORIES, ROLES, SIZE_BANDS, STATE_OPTIONS, categoriesIn, firstName } from "@/lib/profile";
+import { CATEGORIES, COVERAGE_TEXT, ROLES, SIZE_BANDS, STATE_OPTIONS, categoriesIn, firstName } from "@/lib/profile";
 import { plural } from "@/lib/format";
 import { Label } from "../ui";
 import { useFocusTrap } from "../use-focus-trap";
@@ -64,7 +64,7 @@ export function Wizard({
     {
       eyebrow: "Geography",
       question: `Which states should ${name === "you" ? "your" : name + "'s"} view focus on?`,
-      hint: "The research covers Florida and Georgia. Pick one or both.",
+      hint: `The research covers ${COVERAGE_TEXT}. Pick any of them.`,
       valid: p.states.length > 0,
     },
     {

@@ -17,7 +17,7 @@ import {
   type Profile,
 } from "@/lib/api";
 import { date, initials, plural } from "@/lib/format";
-import { SIZE_BANDS, firstName, stateLabels } from "@/lib/profile";
+import { COVERAGE_TEXT, SIZE_BANDS, STATE_OPTIONS, firstName, stateLabels } from "@/lib/profile";
 import type { FirmSummary, WorkspaceData } from "@/lib/types";
 import { ToastProvider, useToast } from "../toast";
 import { TOUR_STEPS, Tour, type TourView } from "../tour";
@@ -363,8 +363,9 @@ function Overview({
   onLookup: () => void;
 }) {
   const t = data.config.thresholds ?? {};
-  const fl = live.filter((f) => f.state === "FL").length;
-  const ga = live.filter((f) => f.state === "GA").length;
+  const byState = STATE_OPTIONS.map((s) => ({ ...s, n: live.filter((f) => f.state === s.code).length })).filter(
+    (s) => s.n > 0,
+  );
   const strong = live.filter((f) => f.fit === "High Fit" || f.fit === "Moderate Fit");
   const awaiting = live.filter((f) => f.stage === "Needs review").length;
   const sourced = live.filter((f) => f.hasSourcedEvidence).length;
@@ -393,7 +394,7 @@ function Overview({
           <h1>Insurance-defense firms, ranked by fit</h1>
           <p className="desc">
             {firstName(profile.name)}&apos;s view{profile.role ? ` for ${profile.role}` : ""}: every firm the research
-            workflow has screened in Florida and Georgia, with the evidence behind each score.
+            workflow has screened in {COVERAGE_TEXT}, with the evidence behind each score.
           </p>
           <p className="matched">
             <b>Matched on:</b> {matched.join(" · ") || "all firms"}
@@ -423,7 +424,7 @@ function Overview({
           <div className="value">{live.length}</div>
           <div className="caption">
             <span className="dot ok" aria-hidden />
-            {fl} in Florida · {ga} in Georgia, across {data.runs.filter((r) => r.dataMode === "LIVE").length} live runs
+            {byState.map((s) => `${s.n} ${s.code}`).join(" · ") || "None yet"}, across {data.runs.filter((r) => r.dataMode === "LIVE").length} live runs
           </div>
         </div>
         <div className="metric">
