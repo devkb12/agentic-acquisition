@@ -8,7 +8,16 @@ export const ROLES = ["TrueGrit Capital", "VIMANA", "Capstone team", "Other revi
 export const STATE_OPTIONS = [
   { code: "FL", label: "Florida" },
   { code: "GA", label: "Georgia" },
+  { code: "NC", label: "North Carolina" },
+  { code: "SC", label: "South Carolina" },
+  { code: "VA", label: "Virginia" },
 ];
+
+/** "Florida, Georgia, North Carolina, South Carolina and Virginia" */
+export const COVERAGE_TEXT = (() => {
+  const l = STATE_OPTIONS.map((s) => s.label);
+  return l.length > 1 ? `${l.slice(0, -1).join(", ")} and ${l[l.length - 1]}` : l.join("");
+})();
 
 export const CATEGORIES: { label: string; re: RegExp }[] = [
   { label: "Insurance defense", re: /insurance[\s-]*defen[cs]e|insurer|carrier|panel counsel|claims? (defen|litigation)/i },
